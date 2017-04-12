@@ -7,7 +7,8 @@
 #include <QtSerialPort/QSerialPortInfo>
 #include <QtSerialPort/QSerialPort>
 #include <QThread>
-#include <generators/G3000/commands.h>
+#include <G3000/commands.h>
+#include <generators_global.h>
 
 /* Класс G3000 осуществляет управление генераторами РАДИЙ-ТН
  *
@@ -15,18 +16,17 @@
  * излучается соответстующий сигнал. Дополнительная информация о работе доступна при запуске через
  * консоль
  */
-class G3000 : public QObject
+class GENERATORS_EXPORT G3000 : public QObject
 {
     Q_OBJECT
 public:
     explicit G3000(QObject * parent = 0);
 
-    bool turnOn();
-    bool turnOff();
-    bool setAmp(float amp);
-    bool setFrequency(float f);
-    void setFrequencyGrid(int i_frequencyGrid);
-    bool connect();
+    bool turnOn(bool i_on);
+    bool GENERATORS_EXPORT setAmp(float amp);
+    bool GENERATORS_EXPORT setFrequency(float f);
+    void GENERATORS_EXPORT setFrequencyGrid(int i_frequencyGrid);
+    bool GENERATORS_EXPORT connect();
 
     //возможные сетки частот генератора
     enum eFrequencyGrid {
@@ -41,6 +41,7 @@ signals:
 
 private:
 
+    bool commute(quint8);
     bool checkResponse();
     float roundToGrid(float);
     float getReferenceFrequency(int refFreq);
@@ -52,6 +53,11 @@ private:
         UnknownRefFreq
     };
 
+    // Состояния коммутатора
+    enum eSwitcherState{
+        DirectSignal,
+        DiffSignal
+    };
 
     bool on;
 

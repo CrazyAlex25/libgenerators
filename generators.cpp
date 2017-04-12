@@ -1,4 +1,4 @@
-#include "libradiydevel.h"
+#include "generators.h"
 
 
 Libradiydevel::Libradiydevel()

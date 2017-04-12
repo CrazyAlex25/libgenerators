@@ -1,13 +1,15 @@
 #ifndef COMMANDS
 #define COMMANDS
 
+#include <generators_global.h>
 #include <QtGlobal>
-struct Head
+
+struct GENERATORS_EXPORT Head
 {
    quint8 data[5] = { 0x35, 0x34, 0x33, 0x32, 0x31};
 };
 
-struct Syntheziser
+struct GENERATORS_EXPORT Syntheziser
 {
     Head head;
     quint8 id[2] = {0x00, 0x00};
@@ -19,22 +21,22 @@ struct Syntheziser
                        0x00, 0x2C, 0x00, 0x00};
 };
 
-struct Attenuator
+struct GENERATORS_EXPORT Attenuator
 {
     Head head;
     quint8 id = 0x32;
     quint8 data = 0x00;
 };
 
-struct Switcher
+struct GENERATORS_EXPORT Switcher
 {
     Head head;
     quint8 id = 0x33;
-    quint8 commutator = 0x00;
+    quint8 value = 0x01;
 };
 
 
-struct Response
+struct GENERATORS_EXPORT Response
 {
     quint8 data[5] = {0x34, 0x33, 0x32, 0x31, 0x30};
 };
