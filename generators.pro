@@ -37,3 +37,17 @@ unix {
     INSTALLS += headersGeneral \
                 headersG3000
 }
+
+win32 {
+    target.path = $$IN_PWD/tmp
+    INSTALLS = target
+ #   headersGeneral.path = "C:/Program Files/Radiy/include/generators"
+ #   headersGeneral.files += $$IN_PWD/generators_global.h
+
+ #   headersG3000.path = "C:/Program Files/Radiy/include/generators/G3000"
+  #  headersG3000.files += $$IN_PWD/G3000/commands.h \
+#                          $$IN_PWD/G3000/g3000.h
+
+ #   INSTALLS += headersGeneral \
+ #               headersG3000
+}
