@@ -1,6 +1,6 @@
 #include "generators.h"
 
 
-Libradiydevel::Libradiydevel()
+Generators::Generators()
 {
 }

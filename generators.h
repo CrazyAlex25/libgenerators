@@ -3,11 +3,11 @@
 
 #include "generators_global.h"
 
-class GENERATORS_EXPORT Libradiydevel
+class GENERATORS_EXPORT Generators
 {
 
 public:
-    Libradiydevel();
+    Generators();
 };
 
 #endif // LIBRADIYDEVEL_H

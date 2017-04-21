@@ -41,5 +41,6 @@ struct GENERATORS_EXPORT Response
     quint8 data[5] = {0x34, 0x33, 0x32, 0x31, 0x30};
 };
 
+
 #endif // COMMANDS
 

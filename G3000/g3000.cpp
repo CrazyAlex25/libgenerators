@@ -4,7 +4,18 @@ G3000::G3000(QObject *parent) : QObject(parent),
     on(false),
     referenceFrequency(UnknownRefFreq),
     lowestFrequency(1e6),
-    highestFrequency(4.4e9)
+    highestFrequency(3.0e9),
+    currentFrequency(NAN),
+    currentAmp(0),
+    fSweepStart(NAN),
+    fSweepStop(NAN),
+    fSweepStep(NAN),
+    fSweep(NAN),
+    sweepMode(SweepToHigh),
+    tSweepMin(0.020),
+    tSweepMax(1000),
+    freqSweepTimerId(-1),
+    serialPortInfo(NULL)
 {
     setFrequencyGrid(Grid10);
     syntheziser1.data[7] = 36;
@@ -16,35 +27,101 @@ G3000::G3000(QObject *parent) : QObject(parent),
     syntheziser2.id[0] = 0x31;
     syntheziser2.id[1] = 0x32;
 
+    connectionTimerId = startTimer(500);
+
 }
 
+G3000::~G3000()
+{
+    if (serialPortInfo != NULL)
+        delete serialPortInfo;
+}
+
+/* проверяем связь с генератором */
+void G3000::timerEvent(QTimerEvent * event)
+{
+    if (event->timerId() == connectionTimerId) {
+        if (serialPortInfo == NULL)
+            return;
+
+        QList<QSerialPortInfo> info = QSerialPortInfo::availablePorts();
+
+        bool isInList = false;
+        for (int i = 0; i < info.length(); ++i)
+            if (info[i].productIdentifier() == serialPortInfo->productIdentifier())
+                isInList = true;
+
+        if (info.isEmpty() || !isInList ) {
+            delete serialPortInfo;
+            serialPortInfo = NULL;
+            emit disconnected();
+        }
+
+    }
+    if  (event->timerId() == freqSweepTimerId) {
+
+        switch (sweepMode) {
+        case SweepToHigh:
+            fSweep += fSweepStep;
+
+            if ((fSweep >= fSweepStop))
+                fSweep = fSweepStart;
+            break;
+
+        case SweepToLow:
+            fSweep -= fSweepStep;
+
+            if ((fSweep <= fSweepStart))
+                fSweep = fSweepStop;
+            break;
+        default:
+            break;
+        }
+
+        setFrequency(fSweep);
+        emit frequencySweeped(fSweep);
+    }
+
+}
 
 bool G3000::connect()
 {
     QList<QSerialPortInfo> info = QSerialPortInfo::availablePorts();
 
     if (info.isEmpty()) {
-        emit error("Couldn't find generator");
+        //emit error("Генератор не найден");
         return false;
     }
 
     if (info.length() > 1) {
-       emit error("More than 1 serial ports available");
+       emit error("Найдено более одного последовательного порта");
         return false;
     }
 
-    serialPort.setPort(info[0]);
+    this->thread()->sleep(1);
+
+    //Обновляем информации о порте
+    serialPortInfo = new QSerialPortInfo(info[0]);
+    serialPort.setPort(*serialPortInfo);
+
     bool ok = serialPort.open(QIODevice::ReadWrite);
     if (!ok) {
-        emit error("Enable to open serial port. " + serialPort.errorString());
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        //emit error("Не удалось получить доступ к последовательному порту. " + serialPort.errorString());
         return false;
     }
+
 
 
     ok = serialPort.setBaudRate(QSerialPort::Baud115200);
     if (!ok)
     {
-        emit error("Couldn't set baud rate");
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        emit error("Не удалось установить скорость передачи данных");
         return false;
     }
 
@@ -52,7 +129,10 @@ bool G3000::connect()
 
     if (!ok)
     {
-        emit error("Couldn't set data bits");
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        emit error("Не удалось установить информационный разряд");
         return false;
     }
 
@@ -61,7 +141,10 @@ bool G3000::connect()
 
     if (!ok)
     {
-        emit error("Couldn't set parity");
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        emit error("Не удалось установить паритет");
         return false;
     }
 
@@ -114,15 +197,18 @@ bool G3000::commute(quint8 key)
     bool success;
     success = checkResponse();
     if (!success) {
-        emit error ("Возникла ошибка при включении");
+        //emit error ("Возникла ошибка при включении");
         return false;
     }
 
     return true;
 }
 
-bool G3000::setAmp(float amp)
+// Установка амлитуды. Функция возвращает значение реально установленной амплитуды
+bool G3000::setAmp(float &amp)
 {
+    currentAmp = amp;
+
     float Nrm = 0;
     attenuator1.data = (quint8) ((amp + Nrm) / 2);
     attenuator2.data = ((quint8) (amp + Nrm)) - attenuator1.data;
@@ -139,12 +225,11 @@ bool G3000::setAmp(float amp)
     #endif
 
 
-    bool success;
-    success = checkResponse();
+    bool  success = checkResponse();
     if (!success) {
-        emit error ("Couldn't set amplitude");
+        //emit error ("Не удалось установить амплитуду");
         return false;
- }
+    }
 
 
     serialPort.write((char *)&attenuator2, sizeof(attenuator2) / sizeof(char));
@@ -154,15 +239,20 @@ bool G3000::setAmp(float amp)
        for (uint i = 0; i < sizeof(attenuator2.data); ++i)
         qDebug() << attenuator2.data;
     #endif
+
     success = checkResponse();
     if (!success) {
-        emit error ("Couldn't set amplitude");
+        //emit error ("Не удалось установить амплитуду");
         return false;
     }
 
     return true;
 }
 
+float G3000::getAmp()
+{
+    return currentAmp;
+}
 
 /* Метод проверяет ответ от генератора. Возращает true, если получен
  * ожидаемый ответ.
@@ -220,16 +310,23 @@ bool G3000::checkResponse()
     return success;
 }
 
-/* Установка частоты */
-bool G3000 :: setFrequency(float f)
+/* Установка частоты. Возвращает значение реально установленной частоты */
+bool G3000 :: setFrequency(float &m_freq)
 {
+
     syntheziser1.data[15] = 0x42;
 
     // Обработка входных данных
-    if ( f < lowestFrequency)
-        f = lowestFrequency;
-    if ( f > highestFrequency )
-        f = highestFrequency;
+    if ( m_freq < lowestFrequency)
+        m_freq = lowestFrequency;
+    if ( m_freq > highestFrequency )
+        m_freq = highestFrequency;
+
+    // Округление до деления выбранной сетки
+    m_freq = roundToGrid(m_freq);
+
+    currentFrequency = m_freq;
+    float f = m_freq;
 
     // Нормировка амплитуды
 
@@ -248,9 +345,6 @@ bool G3000 :: setFrequency(float f)
              syntheziser2.data[21] = 44;
         }
     }
-
-    // Округление до деления выбранной сетки
-    f = roundToGrid(f);
 
     // Установка синтезаторов
 
@@ -448,8 +542,8 @@ bool G3000 :: setFrequency(float f)
         emit error("ВЫбранна недопустимая сетка частот");
     }
 
-    int intV = round( remainderV * R * f / 25e6);
-    int fracV = round( moduleV * (remainderV * R * f / 25e6 - intV));
+    int intV = floor( remainderV * R * (f / 25e6));
+    int fracV = round( moduleV * (remainderV * R * (f / 25e6) - intV));
 
     qDebug()<< "syntheziser1[28] =" << (((intV >> 1) >> 8 ) & 0xff);
     qDebug()<< "syntheziser1[29] =" << ((intV >> 1) & 0xff);
@@ -462,7 +556,7 @@ bool G3000 :: setFrequency(float f)
     if ((intV & 0xff & 1) == 1)
         syntheziser1.data[22] += 128;
 
-    syntheziser1.data[22] = ((fracV & 0xff) >> 3);
+    syntheziser1.data[23] = ((fracV & 0xff) << 3);
 
 
     serialPort.write((char *)&syntheziser1, sizeof(syntheziser1));
@@ -475,34 +569,138 @@ bool G3000 :: setFrequency(float f)
     #endif
 
     if (!status) {
-        emit error("Не удалось установить частоту");
+        //emit error("Не удалось установить частоту");
         return false;
     }
 
-    bool synth2Changed1 = ((syntheziser2.data[15] == 66) && (switcher.value == 1));
-    bool synth2Changed2 = ((syntheziser2.data[15] == 98) && (switcher.value == 7));
-    if (synth2Changed1 || synth2Changed2) {
-        if (switcher.value == 1)
-            syntheziser2.data[15] = 98;
-        else
-            syntheziser2.data[15] = 66;
+//    bool synth2Changed1 = ((syntheziser2.data[15] == 66) && (switcher.value == 1));
+//    bool synth2Changed2 = ((syntheziser2.data[15] == 98) && (switcher.value == 7));
+//    if (synth2Changed1 || synth2Changed2) {
+    if (switcher.value == 1)
+        syntheziser2.data[15] = 98;
+    else
+        syntheziser2.data[15] = 66;
 
 
-        serialPort.write((char *)&syntheziser2, sizeof(syntheziser2));
-        status = checkResponse();
+    serialPort.write((char *)&syntheziser2, sizeof(syntheziser2));
+    status = checkResponse();
 
-        #ifdef QT_DEBUG
-            qDebug() << "буффер 2 синтезатора: ";
-           for (uint i = 0; i < sizeof(syntheziser2.data); ++i)
-            qDebug() << syntheziser2.data[i];
-        #endif
+    #ifdef QT_DEBUG
+        qDebug() << "буффер 2 синтезатора: ";
+       for (uint i = 0; i < sizeof(syntheziser2.data); ++i)
+        qDebug() << syntheziser2.data[i];
+    #endif
 
-        if (!status)
-            emit error("Не удалось установить частоту");
+        //if (!status)
+            //emit error("Не удалось установить частоту");
 
-    }
+//    }
 
     return true;
+}
+
+float G3000::getFrequency()
+{
+    return currentFrequency;
+}
+
+bool G3000::startFrequencySweep(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep, int i_sweepMode)
+{
+    if (std::isnan(m_fStart)) {
+        emit error("Не установлена нижняя граница");
+        return false;
+    }
+
+    if (std::isnan(m_fStop)) {
+        emit error("Не установлена верхняя граница");
+        return false;
+    }
+
+    if (std::isnan(m_fStep)) {
+        emit error("Не установлен шаг сканирования");
+        return false;
+    }
+
+    if (std::isnan(m_timeStep)) {
+        emit error("Не установлен период сканирования");
+        return false;
+    }
+
+    if (m_timeStep < tSweepMin)
+        m_timeStep = tSweepMin;
+
+    if (m_timeStep > tSweepMax)
+        m_timeStep = tSweepMax;
+
+    int t_msec = round(m_timeStep * 1e3);
+    m_timeStep = t_msec / 1e3;
+
+    fSweepStep = m_fStep;
+    fSweepStart = m_fStart;
+    fSweepStop = m_fStop;
+
+    if (m_fStart > m_fStop) {
+        float tmp = m_fStart;
+        m_fStart = m_fStop;
+        m_fStop = tmp;
+    }
+
+
+    if ((m_fStop >= 275e6) && (m_fStart < 275e6)) {
+        emit error("Сканирование возможно в интервалах [1 МГц; 275МГц) и (275 МГц; 3ГГЦ] ");
+        return false;
+    }
+
+    if (m_fStart < lowestFrequency)
+        m_fStart = lowestFrequency;
+
+    if (m_fStart > highestFrequency)
+        m_fStart = highestFrequency;
+
+    if (m_fStop < lowestFrequency)
+        m_fStop = lowestFrequency;
+
+    if (m_fStop > highestFrequency)
+        m_fStop = highestFrequency;
+
+    m_fStep = roundToGrid(fabs(m_fStep));
+
+    fSweepStart = m_fStart;
+    fSweepStop = m_fStop;
+    fSweep = fSweepStart;
+
+    switch (i_sweepMode)
+    {
+    case SweepToHigh:
+        sweepMode = SweepToHigh;
+        break;
+
+    case SweepToLow:
+        sweepMode = SweepToLow;
+        break;
+
+    default:
+        emit error("Неправильный режим перестройки частоты");
+        return false;
+        break;
+    }
+
+    freqSweepTimerId = startTimer(t_msec);
+    setFrequency(fSweep);
+    emit frequencySweeped(fSweep);
+    return true;
+}
+
+void G3000 :: stopFrequencySweep()
+{
+    if (freqSweepTimerId != -1)
+        killTimer(freqSweepTimerId);
+
+    freqSweepTimerId = -1;
+    fSweepStart = NAN;
+    fSweepStop = NAN;
+    fSweepStep = NAN;
+    fSweep = NAN;
 
 }
 
@@ -537,6 +735,11 @@ void G3000 :: setFrequencyGrid(int i_frequencyGrid)
     }
 }
 
+FrequencyGrid G3000::getFrequencyGrid()
+{
+    return frequencyGrid;
+}
+
 float G3000::roundToGrid(float f)
 {
 
@@ -565,7 +768,7 @@ float G3000::roundToGrid(float f)
         break;
     }
     default:
-        emit error("ВЫбранна недопустимая сетка частот");
+        emit error("Выбранна недопустимая сетка частот");
     }
 
     return result;
