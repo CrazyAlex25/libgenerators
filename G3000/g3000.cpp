@@ -1,6 +1,8 @@
 #include "G3000/g3000.h"
 
 G3000::G3000(QObject *parent) : QObject(parent),
+    vid(0x0403),
+    pid(0x6001),
     on(false),
     referenceFrequency(UnknownRefFreq),
     lowestFrequency(1e6),
@@ -93,8 +95,16 @@ bool G3000::connect()
         return false;
     }
 
-    if (info.length() > 1) {
-       emit error("Найдено более одного последовательного порта");
+    int deviceCounter = 0;
+
+    for (int i = 0; i < info.length(); ++i)
+    {
+        if ((info[i].vendorIdentifier() == vid) && (info[i].productIdentifier() == pid))
+            ++deviceCounter;
+    }
+
+    if (deviceCounter > 1) {
+       emit error("Найдено более одного устройства");
         return false;
     }
 

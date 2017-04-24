@@ -68,6 +68,9 @@ private:
     float roundToGrid(float);
     float getReferenceFrequency(int refFreq);
 
+    int vid;
+    int pid;
+
     // Определение опорных частот
     enum eReferenceFrequency{
         RefFreq1100,  // 1100 МГЦ
