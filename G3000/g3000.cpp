@@ -4,6 +4,7 @@ G3000::G3000(QObject *parent) : QObject(parent),
     vid(0x0403),
     pid(0x6001),
     on(false),
+    connected(false),
     referenceFrequency(UnknownRefFreq),
     lowestFrequency(1e6),
     highestFrequency(3.0e9),
@@ -35,7 +36,7 @@ G3000::G3000(QObject *parent) : QObject(parent),
 
 G3000::~G3000()
 {
-    if (serialPortInfo != NULL)
+    if (connected)
         delete serialPortInfo;
 }
 
@@ -61,6 +62,9 @@ void G3000::timerEvent(QTimerEvent * event)
 
     }
     if  (event->timerId() == freqSweepTimerId) {
+
+        if (!connected)
+            return;
 
         switch (sweepMode) {
         case SweepToHigh:
@@ -88,6 +92,9 @@ void G3000::timerEvent(QTimerEvent * event)
 
 bool G3000::connect()
 {
+
+    int deviceCounter = 0;
+
     QList<QSerialPortInfo> info = QSerialPortInfo::availablePorts();
 
     if (info.isEmpty()) {
@@ -95,13 +102,17 @@ bool G3000::connect()
         return false;
     }
 
-    int deviceCounter = 0;
-
     for (int i = 0; i < info.length(); ++i)
     {
+
         if ((info[i].vendorIdentifier() == vid) && (info[i].productIdentifier() == pid))
             ++deviceCounter;
+
     }
+
+
+    if (deviceCounter == 0)
+       return false;
 
     if (deviceCounter > 1) {
        emit error("Найдено более одного устройства");
@@ -158,12 +169,16 @@ bool G3000::connect()
         return false;
     }
 
+    connected = true;
     return true;
 }
 
 /* Включение/выключение генератора*/
 bool G3000::turnOn(bool i_on)
 {
+    if (!connected)
+        return false;
+
     on = i_on;
     return commute(DirectSignal);
 
@@ -217,6 +232,9 @@ bool G3000::commute(quint8 key)
 // Установка амлитуды. Функция возвращает значение реально установленной амплитуды
 bool G3000::setAmp(float &amp)
 {
+    if (!connected)
+        return false;
+
     currentAmp = amp;
 
     float Nrm = 0;
@@ -323,6 +341,9 @@ bool G3000::checkResponse()
 /* Установка частоты. Возвращает значение реально установленной частоты */
 bool G3000 :: setFrequency(float &m_freq)
 {
+
+    if (!connected)
+        return false;
 
     syntheziser1.data[15] = 0x42;
 
@@ -616,6 +637,9 @@ float G3000::getFrequency()
 
 bool G3000::startFrequencySweep(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep, int i_sweepMode)
 {
+    if (!connected)
+        return false;
+
     if (std::isnan(m_fStart)) {
         emit error("Не установлена нижняя граница");
         return false;

@@ -85,6 +85,7 @@ private:
     };
 
     bool on;
+    bool connected;
 
 
     float referenceFrequency;

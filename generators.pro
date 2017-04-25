@@ -21,7 +21,7 @@ HEADERS += generators.h\
     G3000/commands.h \
     G3000/g3000.h
 
-VERSION = 1.0.2
+VERSION = 1.0.3
 
 unix {
     target.path = /usr/lib/radiy
@@ -41,6 +41,7 @@ unix {
 win32 {
     target.path = $$IN_PWD/tmp
     INSTALLS = target
+
  #   headersGeneral.path = "C:/Program Files/Radiy/include/generators"
  #   headersGeneral.files += $$IN_PWD/generators_global.h
 
