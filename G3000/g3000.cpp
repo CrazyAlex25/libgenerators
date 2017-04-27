@@ -55,6 +55,7 @@ void G3000::timerEvent(QTimerEvent * event)
                 isInList = true;
 
         if (info.isEmpty() || !isInList ) {
+            qDebug() << "Lost connection";
             delete serialPortInfo;
             serialPortInfo = NULL;
             emit disconnected();
@@ -62,9 +63,6 @@ void G3000::timerEvent(QTimerEvent * event)
 
     }
     if  (event->timerId() == freqSweepTimerId) {
-
-        if (!connected)
-            return;
 
         switch (sweepMode) {
         case SweepToHigh:
@@ -85,6 +83,7 @@ void G3000::timerEvent(QTimerEvent * event)
         }
 
         setFrequency(fSweep);
+        qDebug()<<"Setted Frequency" + QString::number(fSweep) + "Hz";
         emit frequencySweeped(fSweep);
     }
 
@@ -92,6 +91,7 @@ void G3000::timerEvent(QTimerEvent * event)
 
 bool G3000::connect()
 {
+    qDebug()<<"Start searching for device";
 
     int deviceCounter = 0;
     int deviceNum = -1;
@@ -99,7 +99,7 @@ bool G3000::connect()
     QList<QSerialPortInfo> info = QSerialPortInfo::availablePorts();
 
     if (info.isEmpty()) {
-        //emit error("Генератор не найден");
+        qDebug()<<"Can't find generator";
         return false;
     }
 
@@ -114,8 +114,10 @@ bool G3000::connect()
     }
 
 
-    if (deviceCounter == 0)
+    if (deviceCounter == 0) {
+       qDebug()<<"Can't find generator";
        return false;
+    }
 
     if (deviceCounter > 1) {
        emit error("Найдено более одного устройства");
@@ -173,14 +175,17 @@ bool G3000::connect()
     }
 
     connected = true;
+    qDebug() << "Generator has been connected";
     return true;
 }
 
 /* Включение/выключение генератора*/
 bool G3000::turnOn(bool i_on)
 {
-    if (!connected)
+    if (!connected) {
+        qDebug() << "Can't execute command. Generator is not connected";
         return false;
+    }
 
     on = i_on;
     return commute(DirectSignal);
@@ -216,7 +221,7 @@ bool G3000::commute(quint8 key)
     serialPort.write((char *)&switcher , sizeof( switcher));
 
     #ifdef QT_DEBUG
-       qDebug() << "буффер включения: ";
+       qDebug() << "Switcher buffer: ";
        for (uint i = 0; i < sizeof(switcher.value); ++i)
         qDebug() << switcher.value;
     #endif
@@ -235,8 +240,10 @@ bool G3000::commute(quint8 key)
 // Установка амлитуды. Функция возвращает значение реально установленной амплитуды
 bool G3000::setAmp(float &amp)
 {
-    if (!connected)
+    if (!connected) {
+        qDebug() << "Can't execute command. Generator is not connected.";
         return false;
+    }
 
     currentAmp = amp;
 
@@ -250,7 +257,7 @@ bool G3000::setAmp(float &amp)
     serialPort.write((char *)&attenuator1, sizeof(attenuator1) / sizeof(char));
 
     #ifdef QT_DEBUG
-        qDebug() << "буффер аттениютора: ";
+        qDebug() << "Attenuation buffer: ";
        for (uint i = 0; i < sizeof(attenuator1.data); ++i)
         qDebug() << attenuator1.data;
     #endif
@@ -266,7 +273,7 @@ bool G3000::setAmp(float &amp)
     serialPort.write((char *)&attenuator2, sizeof(attenuator2) / sizeof(char));
 
     #ifdef QT_DEBUG
-        qDebug() << "буффер аттениютора: ";
+        qDebug() << "atttenuation buffer: ";
        for (uint i = 0; i < sizeof(attenuator2.data); ++i)
         qDebug() << attenuator2.data;
     #endif
@@ -277,6 +284,7 @@ bool G3000::setAmp(float &amp)
         return false;
     }
 
+    qDebug()<<"Setted Attenuation  " + QString::number(amp) + "dB.";
     return true;
 }
 
@@ -295,7 +303,7 @@ bool G3000::checkResponse()
     success &= serialPort.waitForReadyRead(3000);
 
     if (!success) {
-        qDebug() << "Ответ от генератора не получен";
+        qDebug() << "No response from generator";
         return false;
     }
 
@@ -307,7 +315,7 @@ bool G3000::checkResponse()
 
 
     if (bytesToRead == -1) {
-        qDebug() << "Невозможно считать данные с последовательного порта";
+        qDebug() << "Can't read data from searial port";
         success &= false;
     }
 
@@ -344,9 +352,10 @@ bool G3000::checkResponse()
 /* Установка частоты. Возвращает значение реально установленной частоты */
 bool G3000 :: setFrequency(float &m_freq)
 {
-
-    if (!connected)
+    if (!connected) {
+        printf("Can't execute command. Generator is not connected.");
         return false;
+    }
 
     syntheziser1.data[15] = 0x42;
 
@@ -579,10 +588,6 @@ bool G3000 :: setFrequency(float &m_freq)
     int intV = floor( remainderV * R * (f / 25e6));
     int fracV = round( moduleV * (remainderV * R * (f / 25e6) - intV));
 
-    qDebug()<< "syntheziser1[28] =" << (((intV >> 1) >> 8 ) & 0xff);
-    qDebug()<< "syntheziser1[29] =" << ((intV >> 1) & 0xff);
-    qDebug()<< "syntheziser1[30] =" << ((((fracV << 3) >> 8) & 0xff)  & 127);
-
     syntheziser1.data[20] = (((intV >> 1) >> 8 ) & 0xff);
     syntheziser1.data[21] = ((intV >> 1) & 0xff);
     syntheziser1.data[22] = ((((fracV << 3) >> 8) & 0xff)  & 127);
@@ -597,7 +602,7 @@ bool G3000 :: setFrequency(float &m_freq)
     bool status = checkResponse();
 
     #ifdef QT_DEBUG
-        qDebug() << "буффер 1 синтезатора: ";
+        qDebug() << "First syntheziser buffer: ";
        for (uint i = 0; i < sizeof(syntheziser1.data); ++i)
         qDebug() << syntheziser1.data[i];
     #endif
@@ -620,7 +625,7 @@ bool G3000 :: setFrequency(float &m_freq)
     status = checkResponse();
 
     #ifdef QT_DEBUG
-        qDebug() << "буффер 2 синтезатора: ";
+        qDebug() << "Second syntheziser buffer: ";
        for (uint i = 0; i < sizeof(syntheziser2.data); ++i)
         qDebug() << syntheziser2.data[i];
     #endif
@@ -630,6 +635,7 @@ bool G3000 :: setFrequency(float &m_freq)
 
 //    }
 
+    qDebug()<<"Setted Frequency " + QString::number(f) + "Hz";
     return true;
 }
 
@@ -640,8 +646,10 @@ float G3000::getFrequency()
 
 bool G3000::startFrequencySweep(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep, int i_sweepMode)
 {
-    if (!connected)
+    if (!connected) {
+        qDebug() << "Can't execute command. Generator is not connected";
         return false;
+    }
 
     if (std::isnan(m_fStart)) {
         emit error("Не установлена нижняя граница");
