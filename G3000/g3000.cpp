@@ -94,6 +94,7 @@ bool G3000::connect()
 {
 
     int deviceCounter = 0;
+    int deviceNum = -1;
 
     QList<QSerialPortInfo> info = QSerialPortInfo::availablePorts();
 
@@ -105,8 +106,10 @@ bool G3000::connect()
     for (int i = 0; i < info.length(); ++i)
     {
 
-        if ((info[i].vendorIdentifier() == vid) && (info[i].productIdentifier() == pid))
+        if ((info[i].vendorIdentifier() == vid) && (info[i].productIdentifier() == pid)) {
+            deviceNum = i;
             ++deviceCounter;
+        }
 
     }
 
@@ -122,7 +125,7 @@ bool G3000::connect()
     this->thread()->sleep(1);
 
     //Обновляем информации о порте
-    serialPortInfo = new QSerialPortInfo(info[0]);
+    serialPortInfo = new QSerialPortInfo(info[deviceNum]);
     serialPort.setPort(*serialPortInfo);
 
     bool ok = serialPort.open(QIODevice::ReadWrite);
