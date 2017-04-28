@@ -41,6 +41,9 @@ public:
     FrequencyGrid GENERATORS_EXPORT getFrequencyGrid();
 
     bool GENERATORS_EXPORT connect();
+    bool GENERATORS_EXPORT connect(QSerialPortInfo *);
+
+    QList<QSerialPortInfo> availablePorts();
 
     //возможные сетки частот генератора
     enum eFrequencyGrid {

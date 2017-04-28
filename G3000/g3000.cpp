@@ -51,7 +51,7 @@ void G3000::timerEvent(QTimerEvent * event)
 
         bool isInList = false;
         for (int i = 0; i < info.length(); ++i)
-            if (info[i].productIdentifier() == serialPortInfo->productIdentifier())
+            if (info[i].portName()== serialPortInfo->portName())
                 isInList = true;
 
         if (info.isEmpty() || !isInList ) {
@@ -126,8 +126,13 @@ bool G3000::connect()
 
     this->thread()->sleep(1);
 
+    return connect(&info[deviceNum]);
+}
+
+bool G3000::connect(QSerialPortInfo *info)
+{
     //Обновляем информации о порте
-    serialPortInfo = new QSerialPortInfo(info[deviceNum]);
+    serialPortInfo = new QSerialPortInfo(*info);
     serialPort.setPort(*serialPortInfo);
 
     bool ok = serialPort.open(QIODevice::ReadWrite);
@@ -177,6 +182,11 @@ bool G3000::connect()
     connected = true;
     qDebug() << "Generator has been connected";
     return true;
+}
+
+QList<QSerialPortInfo> G3000::availablePorts()
+{
+    return QSerialPortInfo::availablePorts();
 }
 
 /* Включение/выключение генератора*/

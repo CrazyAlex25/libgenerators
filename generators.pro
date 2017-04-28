@@ -21,21 +21,23 @@ HEADERS += generators.h\
     G3000/commands.h \
     G3000/g3000.h
 
-VERSION = 1.0.5
+VERSION = 1.0.6
 
 unix {
-    target.path = /usr/lib/radiy
+    target.path = /usr/local/lib/radiy
     INSTALLS += target
 
-    headersGeneral.path = /usr/include/radiy/generators
+    headersGeneral.path = /usr/local/include/radiy/generators
     headersGeneral.files += $$IN_PWD/generators_global.h
 
-    headersG3000.path = /usr/include/radiy/generators/G3000
+    headersG3000.path = /usr/local/include/radiy/generators/G3000
     headersG3000.files += $$IN_PWD/G3000/commands.h \
                           $$IN_PWD/G3000/g3000.h
 
     INSTALLS += headersGeneral \
                 headersG3000
+
+    QMAKE_CXXFLAGS += -rpath=/the/absolute/path/libgenerators.so.1
 }
 
 win32 {
