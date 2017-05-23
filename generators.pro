@@ -36,8 +36,6 @@ unix {
 
     INSTALLS += headersGeneral \
                 headersG3000
-
-    QMAKE_CXXFLAGS += -rpath=/the/absolute/path/libgenerators.so.1
 }
 
 win32 {
@@ -54,3 +52,9 @@ win32 {
  #   INSTALLS += headersGeneral \
  #               headersG3000
 }
+
+DISTFILES += \
+    calibration.txt
+
+RESOURCES += \
+    amp.qrc

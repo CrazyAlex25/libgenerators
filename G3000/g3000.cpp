@@ -10,6 +10,7 @@ G3000::G3000(QObject *parent) : QObject(parent),
     highestFrequency(3.0e9),
     currentFrequency(NAN),
     currentAmp(0),
+    attenuationStep(0.5),
     fSweepStart(NAN),
     fSweepStop(NAN),
     fSweepStep(NAN),
@@ -18,8 +19,11 @@ G3000::G3000(QObject *parent) : QObject(parent),
     tSweepMin(0.020),
     tSweepMax(1000),
     freqSweepTimerId(-1),
-    serialPortInfo(NULL)
+    serialPortInfo(NULL),
+    fAmpCorrectionStep(NAN)
 {
+    Q_INIT_RESOURCE(amp);
+
     setFrequencyGrid(Grid10);
     syntheziser1.data[7] = 36;
     //commutator = 0;
@@ -84,7 +88,7 @@ void G3000::timerEvent(QTimerEvent * event)
 
         setFrequency(fSweep);
         qDebug()<<"Setted Frequency" + QString::number(fSweep) + "Hz";
-        emit frequencySweeped(fSweep);
+        emit newFrequency(fSweep);
     }
 
 }
@@ -181,12 +185,20 @@ bool G3000::connect(QSerialPortInfo *info)
 
     connected = true;
     qDebug() << "Generator has been connected";
+
+    loadCalibrationAmp();
+    qDebug() << "Amp calibration loaded";
     return true;
 }
 
-QList<QSerialPortInfo> G3000::availablePorts()
+QList<QSerialPortInfo> G3000::getAvailablePorts()
 {
     return QSerialPortInfo::availablePorts();
+}
+
+QSerialPortInfo G3000::getPortInfo()
+{
+    return *serialPortInfo;
 }
 
 /* Включение/выключение генератора*/
@@ -250,16 +262,32 @@ bool G3000::commute(quint8 key)
 // Установка амлитуды. Функция возвращает значение реально установленной амплитуды
 bool G3000::setAmp(float &amp)
 {
+     currentAmp = amp;
+     return setAttenuation(amp);
+}
+
+// Установка значений аттенюатора. Функция возвращает значение реально установленной амплитуды
+bool G3000::setAttenuation(float &amp)
+{
     if (!connected) {
         qDebug() << "Can't execute command. Generator is not connected.";
         return false;
     }
 
-    currentAmp = amp;
 
-    float Nrm = 0;
-    attenuator1.data = (quint8) ((amp + Nrm) / 2);
-    attenuator2.data = ((quint8) (amp + Nrm)) - attenuator1.data;
+    double maxAmp = getAmpCorrection();
+
+    if (amp > maxAmp)
+        amp = maxAmp;
+
+    float attenuation = 10 * log10(maxAmp * maxAmp / (amp * amp));
+    attenuation = round(attenuation / attenuationStep) * attenuationStep; // округление до шага аттенюатора
+
+    amp = maxAmp / sqrt(pow(10, attenuation / 10));
+
+
+    attenuator1.data = (quint8) (attenuation);
+    attenuator2.data = ((quint8) (attenuation * 2)) - attenuator1.data;
 
     //float V = (attenuation[0]  + attenuation[1]) / 2;
     attenuator2.data += 128;
@@ -294,13 +322,71 @@ bool G3000::setAmp(float &amp)
         return false;
     }
 
-    qDebug()<<"Setted Attenuation  " + QString::number(amp) + "dB.";
+    qDebug()<<"Setted Attenuation  " + QString::number(attenuation) + "dB.";
     return true;
 }
 
 float G3000::getAmp()
 {
     return currentAmp;
+}
+
+double G3000::getAmpCorrection()
+{
+    if (isnan(currentFrequency)) {
+        return ampCorrection[1];
+    } else {
+        int ind = round(currentFrequency / fAmpCorrectionStep);
+        return ampCorrection[ind];
+    }
+}
+
+void G3000::loadCalibrationAmp()
+{
+
+    QFile file(":/calibration.txt");
+    if (!file.open(QIODevice::ReadOnly))
+        emit error("Не найден файл грубой калибровки");
+
+    QTextStream in(&file);
+    float f1;
+    float f2;
+    double P_dBm;
+    double P_Wt;
+    double amp_V;
+    double R = 50; //[Ohm]
+    in >> f1;
+    in >> P_dBm;
+    P_Wt = pow(10, P_dBm / 10 - 3);
+    amp_V = sqrt(P_Wt * R * 2);
+    ampCorrection.push_back(amp_V);
+
+    if (amp_V > ampMax)
+        ampMax = amp_V;
+
+    in >> f2;
+    in >> P_dBm;
+    P_Wt = pow(10, P_dBm / 10 - 3);
+    amp_V = sqrt(P_Wt * R * 2);
+    ampCorrection.push_back(amp_V);
+    fAmpCorrectionStep = (f2 - f1) * 1e6;
+
+
+    if (amp_V > ampMax)
+        ampMax = amp_V;
+
+    while (!in.atEnd())
+    {
+        in >> f1;
+        in >> P_dBm;
+        P_Wt = pow(10, P_dBm / 10 - 3);
+        amp_V = sqrt(P_Wt * R * 2);
+        ampCorrection.push_back(amp_V);
+
+
+        if (amp_V > ampMax)
+            ampMax = amp_V;
+    }
 }
 
 /* Метод проверяет ответ от генератора. Возращает true, если получен
@@ -366,7 +452,6 @@ bool G3000 :: setFrequency(float &m_freq)
         printf("Can't execute command. Generator is not connected.");
         return false;
     }
-
     syntheziser1.data[15] = 0x42;
 
     // Обработка входных данных
@@ -646,6 +731,10 @@ bool G3000 :: setFrequency(float &m_freq)
 //    }
 
     qDebug()<<"Setted Frequency " + QString::number(f) + "Hz";
+
+    float amp = currentAmp;
+    setAttenuation(amp);
+    emit newAmplitude(amp);
     return true;
 }
 
@@ -701,8 +790,8 @@ bool G3000::startFrequencySweep(float &m_fStart, float &m_fStop, float &m_fStep,
     }
 
 
-    if ((m_fStop >= 275e6) && (m_fStart < 275e6)) {
-        emit error("Сканирование возможно в интервалах [1 МГц; 275МГц) и (275 МГц; 3ГГЦ] ");
+    if ((m_fStop > 275e6) && (m_fStart <= 275e6)) {
+        emit error("Сканирование возможно в интервалах [1 МГц; 275МГц) и [275 МГц; 3ГГЦ] ");
         return false;
     }
 
@@ -740,9 +829,23 @@ bool G3000::startFrequencySweep(float &m_fStart, float &m_fStop, float &m_fStep,
         break;
     }
 
+    //  Поиск минимальной амплитуды в полосе
+    float ampMin = ampMax;
+    for (int f = fSweepStart; f <= fSweepStop; f += fSweepStep)
+    {
+        int ind = round(f / fAmpCorrectionStep);
+        if (ampMin > ampCorrection[ind])
+            ampMin = ampCorrection[ind];
+    }
+
+    // ограничиваем амлитуду
+    if (currentAmp > ampMin)
+        currentAmp = ampMin;
+
+
     freqSweepTimerId = startTimer(t_msec);
     setFrequency(fSweep);
-    emit frequencySweeped(fSweep);
+    emit newFrequency(fSweep);
     return true;
 }
 
@@ -848,3 +951,5 @@ float G3000::getReferenceFrequency(int refFreq)
         return NAN;
     }
 }
+
+

@@ -10,6 +10,10 @@
 #include <G3000/commands.h>
 #include <generators_global.h>
 #include <QTimerEvent>
+#include <QDir>
+#include <QFile>
+#include <QTextStream>
+#include <QVector>
 
 typedef int FrequencyGrid;
 
@@ -43,7 +47,8 @@ public:
     bool GENERATORS_EXPORT connect();
     bool GENERATORS_EXPORT connect(QSerialPortInfo *);
 
-    QList<QSerialPortInfo> availablePorts();
+    QList<QSerialPortInfo> GENERATORS_EXPORT getAvailablePorts();
+    QSerialPortInfo GENERATORS_EXPORT getPortInfo();
 
     //возможные сетки частот генератора
     enum eFrequencyGrid {
@@ -61,15 +66,19 @@ public:
 signals:
     void error(QString e);
     void disconnected();
-    void frequencySweeped(float freq_Hz);
+    void newFrequency(float freq_Hz);
+    void newAmplitude(float amp_V);
 
 private:
 
     void timerEvent(QTimerEvent *event);
     bool commute(quint8);
+    bool setAttenuation(float &amp);
     bool checkResponse();
     float roundToGrid(float);
     float getReferenceFrequency(int refFreq);
+    void loadCalibrationAmp();
+    double getAmpCorrection();
 
     int vid;
     int pid;
@@ -98,6 +107,8 @@ private:
     float currentFrequency;
 
     float currentAmp;
+    float ampMax;
+    float attenuationStep;
 
     float fSweepStart;
     float fSweepStop;
@@ -118,10 +129,11 @@ private:
     Attenuator attenuator2;
     Switcher switcher;
 
-
-
     QSerialPort serialPort;
     QSerialPortInfo *serialPortInfo;
+
+    QVector<double> ampCorrection;
+    float fAmpCorrectionStep;
 
 };
 
