@@ -263,28 +263,28 @@ bool G3000::commute(quint8 key)
 bool G3000::setAmp(float &amp)
 {
      currentAmp = amp;
-     return setAttenuation(amp);
+
+     double maxAmp = getAmpCorrection();
+
+     if (amp > maxAmp)
+         amp = maxAmp;
+
+     float attenuation = 10 * log10(maxAmp * maxAmp / (amp * amp));
+     attenuation = round(attenuation / attenuationStep) * attenuationStep; // округление до шага аттенюатора
+
+     amp = maxAmp / sqrt(pow(10, attenuation / 10));
+
+     return setAttenuation(attenuation);
+
 }
 
 // Установка значений аттенюатора. Функция возвращает значение реально установленной амплитуды
-bool G3000::setAttenuation(float &amp)
+bool G3000::setAttenuation(float attenuation)
 {
     if (!connected) {
         qDebug() << "Can't execute command. Generator is not connected.";
         return false;
     }
-
-
-    double maxAmp = getAmpCorrection();
-
-    if (amp > maxAmp)
-        amp = maxAmp;
-
-    float attenuation = 10 * log10(maxAmp * maxAmp / (amp * amp));
-    attenuation = round(attenuation / attenuationStep) * attenuationStep; // округление до шага аттенюатора
-
-    amp = maxAmp / sqrt(pow(10, attenuation / 10));
-
 
     attenuator1.data = (quint8) (attenuation);
     attenuator2.data = ((quint8) (attenuation * 2)) - attenuator1.data;
@@ -333,7 +333,7 @@ float G3000::getAmp()
 
 double G3000::getAmpCorrection()
 {
-    if (isnan(currentFrequency)) {
+    if (std::isnan(currentFrequency)) {
         return ampCorrection[1];
     } else {
         int ind = round(currentFrequency / fAmpCorrectionStep);

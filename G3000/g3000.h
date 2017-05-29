@@ -35,6 +35,9 @@ public:
     bool GENERATORS_EXPORT setAmp(float &m_amp);
     float GENERATORS_EXPORT getAmp();
 
+    bool GENERATORS_EXPORT setAttenuation(float attenuation);
+    float GENERATORS_EXPORT getAttenuation();
+
     bool GENERATORS_EXPORT setFrequency(float &m_f);
     float GENERATORS_EXPORT getFrequency();
 
@@ -73,7 +76,6 @@ private:
 
     void timerEvent(QTimerEvent *event);
     bool commute(quint8);
-    bool setAttenuation(float &amp);
     bool checkResponse();
     float roundToGrid(float);
     float getReferenceFrequency(int refFreq);

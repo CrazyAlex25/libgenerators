@@ -21,7 +21,7 @@ HEADERS += generators.h\
     G3000/commands.h \
     G3000/g3000.h
 
-VERSION = 1.0.6
+VERSION = 1.0.9
 
 unix {
     target.path = /usr/local/lib/radiy
