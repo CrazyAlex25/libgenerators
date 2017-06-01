@@ -269,10 +269,10 @@ bool G3000::setAmp(float &amp)
      if (amp > maxAmp)
          amp = maxAmp;
 
-     float attenuation = 10 * log10(maxAmp * maxAmp / (amp * amp));
+     float attenuation = 20 * log10(maxAmp / amp);
      attenuation = round(attenuation / attenuationStep) * attenuationStep; // округление до шага аттенюатора
 
-     amp = maxAmp / sqrt(pow(10, attenuation / 10));
+     amp = maxAmp / pow(10, attenuation / 20);
 
      return setAttenuation(attenuation);
 
@@ -352,13 +352,10 @@ void G3000::loadCalibrationAmp()
     float f1;
     float f2;
     double P_dBm;
-    double P_Wt;
     double amp_V;
-    double R = 50; //[Ohm]
     in >> f1;
     in >> P_dBm;
-    P_Wt = pow(10, P_dBm / 10 - 3);
-    amp_V = sqrt(P_Wt * R * 2);
+    amp_V = pow(10, ((P_dBm + 30 + 16.99)/ 20) - 3) * sqrt(2);
     ampCorrection.push_back(amp_V);
 
     if (amp_V > ampMax)
@@ -366,8 +363,7 @@ void G3000::loadCalibrationAmp()
 
     in >> f2;
     in >> P_dBm;
-    P_Wt = pow(10, P_dBm / 10 - 3);
-    amp_V = sqrt(P_Wt * R * 2);
+    amp_V = pow(10, ((P_dBm + 30 + 16.99)/ 20) - 3) * sqrt(2);
     ampCorrection.push_back(amp_V);
     fAmpCorrectionStep = (f2 - f1) * 1e6;
 
@@ -379,8 +375,7 @@ void G3000::loadCalibrationAmp()
     {
         in >> f1;
         in >> P_dBm;
-        P_Wt = pow(10, P_dBm / 10 - 3);
-        amp_V = sqrt(P_Wt * R * 2);
+        amp_V = pow(10, ((P_dBm + 30 + 16.99)/ 20) - 3) * sqrt(2);
         ampCorrection.push_back(amp_V);
 
 
@@ -733,7 +728,7 @@ bool G3000 :: setFrequency(float &m_freq)
     qDebug()<<"Setted Frequency " + QString::number(f) + "Hz";
 
     float amp = currentAmp;
-    setAttenuation(amp);
+    setAmp(amp);
     emit newAmplitude(amp);
     return true;
 }
@@ -831,9 +826,10 @@ bool G3000::startFrequencySweep(float &m_fStart, float &m_fStop, float &m_fStep,
 
     //  Поиск минимальной амплитуды в полосе
     float ampMin = ampMax;
-    for (int f = fSweepStart; f <= fSweepStop; f += fSweepStep)
+    for (quint64 f = fSweepStart; f < fSweepStop; f += fSweepStep)
     {
-        int ind = round(f / fAmpCorrectionStep);
+        int ind = f / fAmpCorrectionStep;
+
         if (ampMin > ampCorrection[ind])
             ampMin = ampCorrection[ind];
     }
