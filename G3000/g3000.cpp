@@ -20,7 +20,8 @@ G3000::G3000(QObject *parent) : QObject(parent),
     tSweepMax(1000),
     freqSweepTimerId(-1),
     serialPortInfo(NULL),
-    fAmpCorrectionStep(NAN)
+    fAmpCorrectionStep(NAN),
+    logFileName(QDir::currentPath()+"/log.txt")
 {
     Q_INIT_RESOURCE(amp);
 
@@ -36,12 +37,20 @@ G3000::G3000(QObject *parent) : QObject(parent),
 
     connectionTimerId = startTimer(500);
 
+    QFile logFile(logFileName);
+    if (logFile.open(QFile::WriteOnly)) {
+        QTextStream logStream(&logFile);
+        logStream << QDateTime::currentDateTime().toString() << "\n";
+    }
+    logFile.close();
 }
 
 G3000::~G3000()
 {
     if (connected)
         delete serialPortInfo;
+
+  //  logFile.close();
 }
 
 /* проверяем связь с генератором */
@@ -59,7 +68,8 @@ void G3000::timerEvent(QTimerEvent * event)
                 isInList = true;
 
         if (info.isEmpty() || !isInList ) {
-            qDebug() << "Lost connection";
+            printMessage( "Lost connection" );
+
             delete serialPortInfo;
             serialPortInfo = NULL;
             emit disconnected();
@@ -87,7 +97,9 @@ void G3000::timerEvent(QTimerEvent * event)
         }
 
         setFrequency(fSweep);
-        qDebug()<<"Setted Frequency" + QString::number(fSweep) + "Hz";
+
+        printMessage( "Setted Frequency" + QString::number(fSweep) + "Hz");
+
         emit newFrequency(fSweep);
     }
 
@@ -95,7 +107,7 @@ void G3000::timerEvent(QTimerEvent * event)
 
 bool G3000::connect()
 {
-    qDebug()<<"Start searching for device";
+    printMessage("Start searching for device");
 
     int deviceCounter = 0;
     int deviceNum = -1;
@@ -103,7 +115,9 @@ bool G3000::connect()
     QList<QSerialPortInfo> info = QSerialPortInfo::availablePorts();
 
     if (info.isEmpty()) {
-        qDebug()<<"Can't find generator";
+
+        printMessage( "Can't find generator");
+
         return false;
     }
 
@@ -119,7 +133,7 @@ bool G3000::connect()
 
 
     if (deviceCounter == 0) {
-       qDebug()<<"Can't find generator";
+      printMessage("Can't find generator");
        return false;
     }
 
@@ -144,7 +158,7 @@ bool G3000::connect(QSerialPortInfo *info)
         serialPort.close();
         delete serialPortInfo;
         serialPortInfo = NULL;
-        //emit error("Не удалось получить доступ к последовательному порту. " + serialPort.errorString());
+        emit error("Не удалось получить доступ к последовательному порту. " + serialPort.errorString());
         return false;
     }
 
@@ -184,11 +198,16 @@ bool G3000::connect(QSerialPortInfo *info)
     }
 
     connected = true;
-    qDebug() << "Generator has been connected";
+
+    printMessage( "Generator has been connected");
+
 
     loadCalibrationAmp();
-    qDebug() << "Amp calibration loaded";
-    return true;
+
+    printMessage("Amp calibration loaded");
+
+
+     return true;
 }
 
 QList<QSerialPortInfo> G3000::getAvailablePorts()
@@ -205,7 +224,8 @@ QSerialPortInfo G3000::getPortInfo()
 bool G3000::turnOn(bool i_on)
 {
     if (!connected) {
-        qDebug() << "Can't execute command. Generator is not connected";
+        printMessage( "Can't execute command. Generator is not connected");
+
         return false;
     }
 
@@ -232,7 +252,9 @@ bool G3000::commute(quint8 key)
             break;
             }
         default:
-            qDebug() << "Wrong key for switcher";
+
+          printMessage("Wrong key for switcher");
+
         }
     else
         switcher.value = 0;
@@ -282,7 +304,8 @@ bool G3000::setAmp(float &amp)
 bool G3000::setAttenuation(float attenuation)
 {
     if (!connected) {
-        qDebug() << "Can't execute command. Generator is not connected.";
+
+        printMessage("Can't execute command. Generator is not connected.");
         return false;
     }
 
@@ -322,7 +345,7 @@ bool G3000::setAttenuation(float attenuation)
         return false;
     }
 
-    qDebug()<<"Setted Attenuation  " + QString::number(attenuation) + "dB.";
+   printMessage( "Setted Attenuation  " + QString::number(attenuation) + "dB.");
     return true;
 }
 
@@ -393,8 +416,8 @@ bool G3000::checkResponse()
     bool  success = true;
     success &= serialPort.waitForReadyRead(3000);
 
-    if (!success) {
-        qDebug() << "No response from generator";
+    if (!success) {   
+        printMessage("No response from generator");
         return false;
     }
 
@@ -406,7 +429,7 @@ bool G3000::checkResponse()
 
 
     if (bytesToRead == -1) {
-        qDebug() << "Can't read data from searial port";
+        printMessage("Can't read data from searial port");
         success &= false;
     }
 
@@ -725,7 +748,7 @@ bool G3000 :: setFrequency(float &m_freq)
 
 //    }
 
-    qDebug()<<"Setted Frequency " + QString::number(f) + "Hz";
+    printMessage("Setted Frequency " + QString::number(f) + "Hz");
 
     float amp = currentAmp;
     setAmp(amp);
@@ -741,7 +764,7 @@ float G3000::getFrequency()
 bool G3000::startFrequencySweep(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep, int i_sweepMode)
 {
     if (!connected) {
-        qDebug() << "Can't execute command. Generator is not connected";
+        printMessage("Can't execute command. Generator is not connected");
         return false;
     }
 
@@ -948,4 +971,14 @@ float G3000::getReferenceFrequency(int refFreq)
     }
 }
 
+void G3000::printMessage(QString message)
+{
+    qDebug() << message;
+    QFile logFile(logFileName);
+    if (logFile.open(QFile::Append | QFile::Text)) {
+        QTextStream logStream(&logFile);
+        logStream  << "\n" << message  ;
+    }
+    logFile.close();
 
+}

@@ -14,6 +14,8 @@
 #include <QFile>
 #include <QTextStream>
 #include <QVector>
+#include <QTextStream>
+#include <QDateTime>
 
 typedef int FrequencyGrid;
 
@@ -82,6 +84,7 @@ private:
     void loadCalibrationAmp();
     double getAmpCorrection();
 
+    void  printMessage(QString message);
     int vid;
     int pid;
 
@@ -136,6 +139,9 @@ private:
 
     QVector<double> ampCorrection;
     float fAmpCorrectionStep;
+
+    QString logFileName;
+    QFile logFile;
 
 };
 
