@@ -292,7 +292,7 @@ bool G3000::commute(quint8 key)
 bool G3000::setAmp(float &amp)
 {
     currentAmp = amp;
-    bool success;
+    bool success = false;
 
     /* В зависимости от режима управления уровнем сигнала либо идет пересчет
      * амплитуды в ослабление аттенюатора, либо нет.
