@@ -5,11 +5,15 @@ G3000::G3000(QObject *parent) : QObject(parent),
     pid(0x6001),
     on(false),
     connected(false),
+    verbose(false),
+    log(true),
     referenceFrequency(UnknownRefFreq),
     lowestFrequency(1e6),
     highestFrequency(3.0e9),
     currentFrequency(NAN),
     currentAmp(0),
+    attenuationMax(63),
+    attenuationMin(0),
     attenuationStep(0.5),
     fSweepStart(NAN),
     fSweepStop(NAN),
@@ -21,7 +25,8 @@ G3000::G3000(QObject *parent) : QObject(parent),
     freqSweepTimerId(-1),
     serialPortInfo(NULL),
     fAmpCorrectionStep(NAN),
-    logFileName(QDir::currentPath()+"/log.txt")
+    logFileName(QDir::currentPath()+"/log.txt"),
+    levelControlMode(Amplitude)
 {
     Q_INIT_RESOURCE(amp);
 
@@ -47,8 +52,10 @@ G3000::G3000(QObject *parent) : QObject(parent),
 
 G3000::~G3000()
 {
-    if (connected)
+    if (connected) {
+        turnOn(false);
         delete serialPortInfo;
+    }
 
   //  logFile.close();
 }
@@ -284,30 +291,55 @@ bool G3000::commute(quint8 key)
 // Установка амлитуды. Функция возвращает значение реально установленной амплитуды
 bool G3000::setAmp(float &amp)
 {
-     currentAmp = amp;
+    currentAmp = amp;
+    bool success;
 
-     double maxAmp = getAmpCorrection();
+    /* В зависимости от режима управления уровнем сигнала либо идет пересчет
+     * амплитуды в ослабление аттенюатора, либо нет.
+     */
+    switch (levelControlMode)
+    {
+    case Amplitude:
+    {
+         double maxAmp = getAmpCorrection();
 
-     if (amp > maxAmp)
-         amp = maxAmp;
+         if (amp > maxAmp)
+             amp = maxAmp;
 
-     float attenuation = 20 * log10(maxAmp / amp);
-     attenuation = round(attenuation / attenuationStep) * attenuationStep; // округление до шага аттенюатора
+         float attenuation = 20 * log10(maxAmp / amp);
 
-     amp = maxAmp / pow(10, attenuation / 20);
+         success = setAttenuation(attenuation);
 
-     return setAttenuation(attenuation);
+         amp = maxAmp / pow(10, attenuation / 20);
+
+
+        break;
+    }
+    case Attenuation:
+    {
+        success = setAttenuation(amp);
+    }
+    }
+    return success;
 
 }
 
 // Установка значений аттенюатора. Функция возвращает значение реально установленной амплитуды
-bool G3000::setAttenuation(float attenuation)
+bool G3000::setAttenuation(float &attenuation)
 {
-    if (!connected) {
 
-        printMessage("Can't execute command. Generator is not connected.");
+    if (!connected) {
+        printMessage("Can't set attenuator. Generator is not connected.");
         return false;
     }
+
+    if (attenuation > attenuationMax )
+        attenuation = attenuationMax;
+
+    if (attenuation < attenuationMin)
+        attenuation = attenuationMin;
+
+    attenuation = round(attenuation / attenuationStep) * attenuationStep; // округление до шага аттенюатора
 
     attenuator1.data = (quint8) (attenuation);
     attenuator2.data = ((quint8) (attenuation * 2)) - attenuator1.data;
@@ -973,12 +1005,46 @@ float G3000::getReferenceFrequency(int refFreq)
 
 void G3000::printMessage(QString message)
 {
-    qDebug() << message;
-    QFile logFile(logFileName);
-    if (logFile.open(QFile::Append | QFile::Text)) {
-        QTextStream logStream(&logFile);
-        logStream  << "\n" << message  ;
-    }
-    logFile.close();
+    if (verbose)
+        qDebug() << message;
 
+    if (log) {
+        QFile logFile(logFileName);
+        if (logFile.open(QFile::Append | QFile::Text)) {
+            QTextStream logStream(&logFile);
+            logStream  << "\n" << message  ;
+        }
+        logFile.close();
+    }
+
+}
+
+void G3000::enableVerbose(bool input)
+{
+    verbose = input;
+}
+
+void G3000::enableLogs(bool input)
+{
+    log = input;
+}
+
+void G3000::setLevelControlMode(LevelControlMode mode)
+{
+    switch (mode) {
+    case Amplitude:
+        levelControlMode = Amplitude;
+        break;
+    case Attenuation:
+        levelControlMode = Attenuation;
+        break;
+    default:
+        emit error("Задан неправильный режим управление уровнем сигнала");
+        break;
+    }
+}
+
+int G3000::getLevelControlMode()
+{
+    return levelControlMode;
 }

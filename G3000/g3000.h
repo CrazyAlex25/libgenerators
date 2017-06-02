@@ -18,6 +18,7 @@
 #include <QDateTime>
 
 typedef int FrequencyGrid;
+typedef int LevelControlMode;
 
 /* Класс G3000 осуществляет управление генераторами РАДИЙ-ТН
  *
@@ -37,9 +38,6 @@ public:
     bool GENERATORS_EXPORT setAmp(float &m_amp);
     float GENERATORS_EXPORT getAmp();
 
-    bool GENERATORS_EXPORT setAttenuation(float attenuation);
-    float GENERATORS_EXPORT getAttenuation();
-
     bool GENERATORS_EXPORT setFrequency(float &m_f);
     float GENERATORS_EXPORT getFrequency();
 
@@ -55,6 +53,12 @@ public:
     QList<QSerialPortInfo> GENERATORS_EXPORT getAvailablePorts();
     QSerialPortInfo GENERATORS_EXPORT getPortInfo();
 
+    void GENERATORS_EXPORT enableVerbose(bool);
+    void GENERATORS_EXPORT enableLogs(bool);
+
+    void GENERATORS_EXPORT setLevelControlMode(LevelControlMode mode);
+    int GENERATORS_EXPORT getLevelControlMode();
+
     //возможные сетки частот генератора
     enum eFrequencyGrid {
         Grid1, // 1 Кгц
@@ -68,6 +72,11 @@ public:
         SweepToLow
     };
 
+    enum eLevelControlMode{
+        Amplitude,
+        Attenuation
+    };
+
 signals:
     void error(QString e);
     void disconnected();
@@ -75,6 +84,9 @@ signals:
     void newAmplitude(float amp_V);
 
 private:
+
+    bool setAttenuation(float &attenuation);
+    float getAttenuation();
 
     void timerEvent(QTimerEvent *event);
     bool commute(quint8);
@@ -104,6 +116,8 @@ private:
     bool on;
     bool connected;
 
+    bool verbose;
+    bool log;
 
     float referenceFrequency;
     float lowestFrequency;
@@ -113,6 +127,9 @@ private:
 
     float currentAmp;
     float ampMax;
+
+    float attenuationMax;
+    float attenuationMin;
     float attenuationStep;
 
     float fSweepStart;
@@ -142,6 +159,10 @@ private:
 
     QString logFileName;
     QFile logFile;
+
+    int levelControlMode;
+
+
 
 };
 
