@@ -30,7 +30,7 @@ public:
     explicit Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFreq, float i_tSweepMin, float i_tSweepMax, QObject * parent = 0);
 
     //Включение генератора
-    virtual bool turnOn(bool i_on);
+    virtual bool GENERATORS_EXPORT turnOn(bool i_on) = 0;
 
     // Установка амплитуды
     virtual bool GENERATORS_EXPORT setAmp(float &m_amp) = 0;
