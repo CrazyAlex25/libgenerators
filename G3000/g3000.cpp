@@ -1,34 +1,22 @@
 #include "G3000/g3000.h"
+#include <QDebug>
 
-G3000::G3000(QObject *parent) : QObject(parent),
-    vid(0x0403),
-    pid(0x6001),
-    on(false),
-    connected(false),
-    verbose(false),
-    log(true),
+G3000::G3000(QObject *parent) :
+    Generator(0x0403, //vid
+                                          0x6001, //pid
+                                          1e6, // lowestFreq
+                                          3e9, // highestFreq
+                                          0.020, // tSweepMin
+                                          1000, // tSweepMax
+                                          parent),
     referenceFrequency(UnknownRefFreq),
-    lowestFrequency(1e6),
-    highestFrequency(3.0e9),
-    currentFrequency(NAN),
-    currentAmp(0),
     attenuationMax(63),
     attenuationMin(0),
-    attenuationStep(0.5),
-    fSweepStart(NAN),
-    fSweepStop(NAN),
-    fSweepStep(NAN),
-    fSweep(NAN),
-    sweepMode(SweepToHigh),
-    tSweepMin(0.020),
-    tSweepMax(1000),
-    freqSweepTimerId(-1),
-    serialPortInfo(NULL),
-    fAmpCorrectionStep(NAN),
-    logFileName(QDir::currentPath()+"/log.txt"),
-    levelControlMode(Amplitude)
+    attenuationStep(0.5)
 {
+
     Q_INIT_RESOURCE(amp);
+
 
     setFrequencyGrid(Grid10);
     syntheziser1.data[7] = 36;
@@ -41,13 +29,6 @@ G3000::G3000(QObject *parent) : QObject(parent),
     syntheziser2.id[1] = 0x32;
 
     connectionTimerId = startTimer(500);
-
-    QFile logFile(logFileName);
-    if (logFile.open(QFile::WriteOnly)) {
-        QTextStream logStream(&logFile);
-        logStream << QDateTime::currentDateTime().toString() << "\n";
-    }
-    logFile.close();
 }
 
 G3000::~G3000()
@@ -103,6 +84,9 @@ void G3000::timerEvent(QTimerEvent * event)
             break;
         }
 
+        QTime tSweepStop = QTime::currentTime();
+        float tSweep =  tSweepStart.msecsTo(tSweepStop) * 1e-3;
+        emit newTSweep(tSweep);
         setFrequency(fSweep);
 
         printMessage( "Setted Frequency" + QString::number(fSweep) + "Hz");
@@ -112,7 +96,7 @@ void G3000::timerEvent(QTimerEvent * event)
 
 }
 
-bool G3000::connect()
+bool G3000::autoconnect()
 {
     printMessage("Start searching for device");
 
@@ -394,6 +378,7 @@ double G3000::getAmpCorrection()
         int ind = round(currentFrequency / fAmpCorrectionStep);
         return ampCorrection[ind];
     }
+
 }
 
 void G3000::loadCalibrationAmp()
@@ -895,6 +880,7 @@ bool G3000::startFrequencySweep(float &m_fStart, float &m_fStop, float &m_fStep,
 
 
     freqSweepTimerId = startTimer(t_msec);
+    tSweepStart = QTime::currentTime();
     setFrequency(fSweep);
     emit newFrequency(fSweep);
     return true;
@@ -949,40 +935,6 @@ FrequencyGrid G3000::getFrequencyGrid()
     return frequencyGrid;
 }
 
-float G3000::roundToGrid(float f)
-{
-
-    float result = 0;
-
-    switch (frequencyGrid)
-    {
-    case Grid1:
-    {
-        result = 1e3 * round( f / 1e3);
-        break;
-    }
-    case Grid2:
-    {
-        result = 2e3 * round( f / 2e3);
-        break;
-    }
-    case Grid5:
-    {
-        result = 5e3 * round( f / 5e3);
-        break;
-    }
-    case Grid10:
-    {
-        result = 10e3 * round( f / 10e3);
-        break;
-    }
-    default:
-        emit error("Выбранна недопустимая сетка частот");
-    }
-
-    return result;
-}
-
 float G3000::getReferenceFrequency(int refFreq)
 {
     switch (refFreq)
@@ -1001,32 +953,6 @@ float G3000::getReferenceFrequency(int refFreq)
         emit error("Unknown referance frequency");
         return NAN;
     }
-}
-
-void G3000::printMessage(QString message)
-{
-    if (verbose)
-        qDebug() << message;
-
-    if (log) {
-        QFile logFile(logFileName);
-        if (logFile.open(QFile::Append | QFile::Text)) {
-            QTextStream logStream(&logFile);
-            logStream  << "\n" << message  ;
-        }
-        logFile.close();
-    }
-
-}
-
-void G3000::enableVerbose(bool input)
-{
-    verbose = input;
-}
-
-void G3000::enableLogs(bool input)
-{
-    log = input;
 }
 
 void G3000::setLevelControlMode(LevelControlMode mode)

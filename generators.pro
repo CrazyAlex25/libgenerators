@@ -13,13 +13,17 @@ TEMPLATE = lib
 
 DEFINES += GENERATORS_LIBRARY
 
-SOURCES += generators.cpp \
-        G3000/g3000.cpp
+SOURCES += \
+        G3000/g3000.cpp \
+    generator.cpp \
+    G4409/g4409.cpp
 
-HEADERS += generators.h\
+HEADERS +=\
         generators_global.h \
     G3000/commands.h \
-    G3000/g3000.h
+    G3000/g3000.h \
+    generator.h \
+    G4409/g4409.h
 
 VERSION = 1.0.10
 

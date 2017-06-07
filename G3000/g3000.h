@@ -1,87 +1,44 @@
 #ifndef G3000_H
 #define G3000_H
 
-#include <QObject>
-#include <QString>
-#include <QDebug>
-#include <QtSerialPort/QSerialPortInfo>
-#include <QtSerialPort/QSerialPort>
+#include <generator.h>
 #include <QThread>
 #include <G3000/commands.h>
-#include <generators_global.h>
+
 #include <QTimerEvent>
-#include <QDir>
-#include <QFile>
-#include <QTextStream>
 #include <QVector>
-#include <QTextStream>
-#include <QDateTime>
 
-typedef int FrequencyGrid;
-typedef int LevelControlMode;
-
-/* Класс G3000 осуществляет управление генераторами РАДИЙ-ТН
- *
- * Все велечины передаются в системе Cи. Гц, В, сек.
- * Стратегия обработки ошибок: при возникновении ошибки при управлении генератором
- * излучается соответстующий сигнал. Дополнительная информация о работе доступна при запуске через
- * консоль
+/* Класс G3000 осуществляет управление генератором РГШ3000
  */
-class GENERATORS_EXPORT G3000 : public QObject
+
+class GENERATORS_EXPORT G3000 : public Generator
 {
     Q_OBJECT
 public:
     explicit G3000(QObject * parent = 0);
     ~G3000();
 
-    bool turnOn(bool i_on);
-    bool GENERATORS_EXPORT setAmp(float &m_amp);
-    float GENERATORS_EXPORT getAmp();
+    bool GENERATORS_EXPORT turnOn(bool i_on) Q_DECL_OVERRIDE;
+    bool GENERATORS_EXPORT setAmp(float &m_amp) Q_DECL_OVERRIDE;
+    float GENERATORS_EXPORT getAmp() Q_DECL_OVERRIDE;
 
-    bool GENERATORS_EXPORT setFrequency(float &m_f);
-    float GENERATORS_EXPORT getFrequency();
+    bool GENERATORS_EXPORT setFrequency(float &m_f) Q_DECL_OVERRIDE;
+    float GENERATORS_EXPORT getFrequency() Q_DECL_OVERRIDE;
 
-    bool GENERATORS_EXPORT startFrequencySweep(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep, int i_sweepMode);
-    void GENERATORS_EXPORT stopFrequencySweep();
+    bool GENERATORS_EXPORT startFrequencySweep(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep, int i_sweepMode) Q_DECL_OVERRIDE;
+    void GENERATORS_EXPORT stopFrequencySweep() Q_DECL_OVERRIDE;
 
-    void GENERATORS_EXPORT setFrequencyGrid(int i_frequencyGrid);
-    FrequencyGrid GENERATORS_EXPORT getFrequencyGrid();
+    void GENERATORS_EXPORT setFrequencyGrid(int i_frequencyGrid) Q_DECL_OVERRIDE;
+    FrequencyGrid GENERATORS_EXPORT getFrequencyGrid() Q_DECL_OVERRIDE;
 
-    bool GENERATORS_EXPORT connect();
-    bool GENERATORS_EXPORT connect(QSerialPortInfo *);
+    bool GENERATORS_EXPORT autoconnect() Q_DECL_OVERRIDE;
+    bool GENERATORS_EXPORT connect(QSerialPortInfo *) Q_DECL_OVERRIDE;
 
-    QList<QSerialPortInfo> GENERATORS_EXPORT getAvailablePorts();
-    QSerialPortInfo GENERATORS_EXPORT getPortInfo();
+    QList<QSerialPortInfo> GENERATORS_EXPORT getAvailablePorts() Q_DECL_OVERRIDE;
+    QSerialPortInfo GENERATORS_EXPORT getPortInfo() Q_DECL_OVERRIDE;
 
-    void GENERATORS_EXPORT enableVerbose(bool);
-    void GENERATORS_EXPORT enableLogs(bool);
-
-    void GENERATORS_EXPORT setLevelControlMode(LevelControlMode mode);
-    int GENERATORS_EXPORT getLevelControlMode();
-
-    //возможные сетки частот генератора
-    enum eFrequencyGrid {
-        Grid1, // 1 Кгц
-        Grid2, // 2 КГц
-        Grid5, // 5 КГц
-        Grid10 // 10 КГц
-    };
-
-    enum eSweepMode{
-        SweepToHigh,
-        SweepToLow
-    };
-
-    enum eLevelControlMode{
-        Amplitude,
-        Attenuation
-    };
-
-signals:
-    void error(QString e);
-    void disconnected();
-    void newFrequency(float freq_Hz);
-    void newAmplitude(float amp_V);
+    void GENERATORS_EXPORT setLevelControlMode(LevelControlMode mode) Q_DECL_OVERRIDE;
+    int GENERATORS_EXPORT getLevelControlMode() Q_DECL_OVERRIDE;
 
 private:
 
@@ -91,14 +48,10 @@ private:
     void timerEvent(QTimerEvent *event);
     bool commute(quint8);
     bool checkResponse();
-    float roundToGrid(float);
     float getReferenceFrequency(int refFreq);
     void loadCalibrationAmp();
     double getAmpCorrection();
 
-    void  printMessage(QString message);
-    int vid;
-    int pid;
 
     // Определение опорных частот
     enum eReferenceFrequency{
@@ -113,36 +66,11 @@ private:
         DiffSignal
     };
 
-    bool on;
-    bool connected;
-
-    bool verbose;
-    bool log;
-
     float referenceFrequency;
-    float lowestFrequency;
-    float highestFrequency;
-    int frequencyGrid;
-    float currentFrequency;
-
-    float currentAmp;
-    float ampMax;
 
     float attenuationMax;
     float attenuationMin;
     float attenuationStep;
-
-    float fSweepStart;
-    float fSweepStop;
-    float fSweepStep;
-    float fSweep;
-    int sweepMode;
-
-    float tSweepMin;
-    float tSweepMax;
-
-    int connectionTimerId;
-    int freqSweepTimerId;
 
     Response response;
     Syntheziser syntheziser1;
@@ -150,19 +78,6 @@ private:
     Attenuator attenuator1;
     Attenuator attenuator2;
     Switcher switcher;
-
-    QSerialPort serialPort;
-    QSerialPortInfo *serialPortInfo;
-
-    QVector<double> ampCorrection;
-    float fAmpCorrectionStep;
-
-    QString logFileName;
-    QFile logFile;
-
-    int levelControlMode;
-
-
 
 };
 
