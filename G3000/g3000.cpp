@@ -265,7 +265,7 @@ bool G3000::commute(quint8 key)
     bool success;
     success = checkResponse();
     if (!success) {
-        //emit error ("Возникла ошибка при включении");
+        emit error ("Возникла ошибка при включении");
         return false;
     }
 

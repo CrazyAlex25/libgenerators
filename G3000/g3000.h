@@ -40,6 +40,13 @@ public:
     void GENERATORS_EXPORT setLevelControlMode(LevelControlMode mode) Q_DECL_OVERRIDE;
     int GENERATORS_EXPORT getLevelControlMode() Q_DECL_OVERRIDE;
 
+signals:
+    void error(QString e);
+    void disconnected();
+    void newFrequency(float freq_Hz);
+    void newAmplitude(float amp_V);
+    void newTSweep(float t_s);
+
 private:
 
     bool setAttenuation(float &attenuation);

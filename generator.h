@@ -147,4 +147,4 @@ protected:
     QFile logFile;
 
 };
-#endif // INTERFACE_H
+#endif // GENERATOR_H
