@@ -3,9 +3,8 @@
 
 #include <generator.h>
 #include <QThread>
-#include <G3000/commands.h>
+#include <G3000/commands3000.h>
 
-#include <QTimerEvent>
 #include <QVector>
 
 /* Класс G3000 осуществляет управление генератором РГШ3000
@@ -14,6 +13,7 @@
 class GENERATORS_EXPORT G3000 : public Generator
 {
     Q_OBJECT
+    friend class Searcher;
 public:
     explicit G3000(QObject * parent = 0);
     ~G3000();
@@ -31,14 +31,11 @@ public:
     void GENERATORS_EXPORT setFrequencyGrid(int i_frequencyGrid) Q_DECL_OVERRIDE;
     FrequencyGrid GENERATORS_EXPORT getFrequencyGrid() Q_DECL_OVERRIDE;
 
-    bool GENERATORS_EXPORT autoconnect() Q_DECL_OVERRIDE;
-    bool GENERATORS_EXPORT connect(QSerialPortInfo *) Q_DECL_OVERRIDE;
-
-    QList<QSerialPortInfo> GENERATORS_EXPORT getAvailablePorts() Q_DECL_OVERRIDE;
-    QSerialPortInfo GENERATORS_EXPORT getPortInfo() Q_DECL_OVERRIDE;
+    bool GENERATORS_EXPORT connect(QSerialPortInfo & info) Q_DECL_OVERRIDE;
+    void GENERATORS_EXPORT disconnect() Q_DECL_OVERRIDE;
 
     void GENERATORS_EXPORT setLevelControlMode(LevelControlMode mode) Q_DECL_OVERRIDE;
-    int GENERATORS_EXPORT getLevelControlMode() Q_DECL_OVERRIDE;
+    LevelControlMode GENERATORS_EXPORT getLevelControlMode() Q_DECL_OVERRIDE;
 
 signals:
     void error(QString e);
@@ -52,13 +49,11 @@ private:
     bool setAttenuation(float &attenuation);
     float getAttenuation();
 
-    void timerEvent(QTimerEvent *event);
     bool commute(quint8);
     bool checkResponse();
     float getReferenceFrequency(int refFreq);
     void loadCalibrationAmp();
     double getAmpCorrection();
-
 
     // Определение опорных частот
     enum eReferenceFrequency{
@@ -79,12 +74,13 @@ private:
     float attenuationMin;
     float attenuationStep;
 
-    Response response;
-    Syntheziser syntheziser1;
-    Syntheziser syntheziser2;
-    Attenuator attenuator1;
-    Attenuator attenuator2;
-    Switcher switcher;
+    Head3000 head;
+    Response3000 response;
+    Syntheziser3000 syntheziser1;
+    Syntheziser3000 syntheziser2;
+    Attenuator3000 attenuator1;
+    Attenuator3000 attenuator2;
+    Switcher3000 switcher;
 
 };
 

@@ -37,111 +37,12 @@ G3000::~G3000()
         turnOn(false);
         delete serialPortInfo;
     }
-
-  //  logFile.close();
 }
 
-/* проверяем связь с генератором */
-void G3000::timerEvent(QTimerEvent * event)
-{
-    if (event->timerId() == connectionTimerId) {
-        if (serialPortInfo == NULL)
-            return;
-
-        QList<QSerialPortInfo> info = QSerialPortInfo::availablePorts();
-
-        bool isInList = false;
-        for (int i = 0; i < info.length(); ++i)
-            if (info[i].portName()== serialPortInfo->portName())
-                isInList = true;
-
-        if (info.isEmpty() || !isInList ) {
-            printMessage( "Lost connection" );
-
-            delete serialPortInfo;
-            serialPortInfo = NULL;
-            emit disconnected();
-        }
-
-    }
-    if  (event->timerId() == freqSweepTimerId) {
-
-        switch (sweepMode) {
-        case SweepToHigh:
-            fSweep += fSweepStep;
-
-            if ((fSweep >= fSweepStop))
-                fSweep = fSweepStart;
-            break;
-
-        case SweepToLow:
-            fSweep -= fSweepStep;
-
-            if ((fSweep <= fSweepStart))
-                fSweep = fSweepStop;
-            break;
-        default:
-            break;
-        }
-
-        QTime tSweepStop = QTime::currentTime();
-        float tSweep =  tSweepStart.msecsTo(tSweepStop) * 1e-3;
-        emit newTSweep(tSweep);
-        setFrequency(fSweep);
-
-        printMessage( "Setted Frequency" + QString::number(fSweep) + "Hz");
-
-        emit newFrequency(fSweep);
-    }
-
-}
-
-bool G3000::autoconnect()
-{
-    printMessage("Start searching for device");
-
-    int deviceCounter = 0;
-    int deviceNum = -1;
-
-    QList<QSerialPortInfo> info = QSerialPortInfo::availablePorts();
-
-    if (info.isEmpty()) {
-
-        printMessage( "Can't find generator");
-
-        return false;
-    }
-
-    for (int i = 0; i < info.length(); ++i)
-    {
-
-        if ((info[i].vendorIdentifier() == vid) && (info[i].productIdentifier() == pid)) {
-            deviceNum = i;
-            ++deviceCounter;
-        }
-
-    }
-
-
-    if (deviceCounter == 0) {
-      printMessage("Can't find generator");
-       return false;
-    }
-
-    if (deviceCounter > 1) {
-       emit error("Найдено более одного устройства");
-        return false;
-    }
-
-    this->thread()->sleep(1);
-
-    return connect(&info[deviceNum]);
-}
-
-bool G3000::connect(QSerialPortInfo *info)
+bool G3000::connect(QSerialPortInfo &info)
 {
     //Обновляем информации о порте
-    serialPortInfo = new QSerialPortInfo(*info);
+    serialPortInfo = new QSerialPortInfo(info);
     serialPort.setPort(*serialPortInfo);
 
     bool ok = serialPort.open(QIODevice::ReadWrite);
@@ -188,7 +89,8 @@ bool G3000::connect(QSerialPortInfo *info)
         return false;
     }
 
-    connected = true;
+    serialPort.write((char *)&head , sizeof( head));
+    connected = checkResponse();
 
     printMessage( "Generator has been connected");
 
@@ -198,17 +100,12 @@ bool G3000::connect(QSerialPortInfo *info)
     printMessage("Amp calibration loaded");
 
 
-     return true;
+     return connected;
 }
 
-QList<QSerialPortInfo> G3000::getAvailablePorts()
+void G3000::disconnect()
 {
-    return QSerialPortInfo::availablePorts();
-}
-
-QSerialPortInfo G3000::getPortInfo()
-{
-    return *serialPortInfo;
+    serialPort.close();
 }
 
 /* Включение/выключение генератора*/
@@ -384,7 +281,7 @@ double G3000::getAmpCorrection()
 void G3000::loadCalibrationAmp()
 {
 
-    QFile file(":/calibration.txt");
+    QFile file(":/calibration3000.txt");
     if (!file.open(QIODevice::ReadOnly))
         emit error("Не найден файл грубой калибровки");
 
@@ -500,9 +397,6 @@ bool G3000 :: setFrequency(float &m_freq)
 
     currentFrequency = m_freq;
     float f = m_freq;
-
-    // Нормировка амплитуды
-
 
     // Выставление опорного генератора
     if (f < 275e6) {
@@ -970,7 +864,7 @@ void G3000::setLevelControlMode(LevelControlMode mode)
     }
 }
 
-int G3000::getLevelControlMode()
+LevelControlMode G3000::getLevelControlMode()
 {
     return levelControlMode;
 }

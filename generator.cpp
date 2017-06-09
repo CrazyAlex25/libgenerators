@@ -53,6 +53,64 @@ void Generator::printMessage(QString message)
 
 }
 
+void Generator::timerEvent(QTimerEvent * event)
+{
+
+    /* проверяем связь с генератором */
+    if (event->timerId() == connectionTimerId) {
+        if (serialPortInfo == NULL)
+            return;
+
+        QList<QSerialPortInfo> info = QSerialPortInfo::availablePorts();
+
+        bool isInList = false;
+        for (int i = 0; i < info.length(); ++i)
+            if (info[i].portName()== serialPortInfo->portName())
+                isInList = true;
+
+        if (info.isEmpty() || !isInList ) {
+            printMessage( "Lost connection" );
+
+            delete serialPortInfo;
+            serialPortInfo = NULL;
+            emit disconnected();
+        }
+
+    }
+
+    // Переключение качания частоты
+    if  (event->timerId() == freqSweepTimerId) {
+
+        switch (sweepMode) {
+        case SweepToHigh:
+            fSweep += fSweepStep;
+
+            if ((fSweep >= fSweepStop))
+                fSweep = fSweepStart;
+            break;
+
+        case SweepToLow:
+            fSweep -= fSweepStep;
+
+            if ((fSweep <= fSweepStart))
+                fSweep = fSweepStop;
+            break;
+        default:
+            break;
+        }
+
+        QTime tSweepStop = QTime::currentTime();
+        float tSweep =  tSweepStart.msecsTo(tSweepStop) * 1e-3;
+        emit newTSweep(tSweep);
+        setFrequency(fSweep);
+
+        printMessage( "Setted Frequency" + QString::number(fSweep) + "Hz");
+
+        emit newFrequency(fSweep);
+    }
+
+}
+
 void Generator::enableVerbose(bool input)
 {
     verbose = input;
@@ -96,4 +154,15 @@ float Generator::roundToGrid(float f)
 
     return result;
 }
+
+QList<QSerialPortInfo> Generator::getAvailablePorts()
+{
+    return QSerialPortInfo::availablePorts();
+}
+
+QSerialPortInfo Generator::getPortInfo()
+{
+    return *serialPortInfo;
+}
+
 

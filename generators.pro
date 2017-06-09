@@ -16,18 +16,23 @@ DEFINES += GENERATORS_LIBRARY
 SOURCES += \
         G3000/g3000.cpp \
     generator.cpp \
-    G4409/g4409.cpp
+    G4409/g4409.cpp \
+    searcher.cpp
 
 HEADERS +=\
-        generators_global.h \
-    G3000/commands.h \
     G3000/g3000.h \
     generator.h \
-    G4409/g4409.h
+    G4409/g4409.h \
+    generators_global.h \
+    G4409/commands4409.h \
+    G3000/commands3000.h \
+    searcher.h
 
-VERSION = 1.0.10
+VERSION = 1.1.0
 
 unix {
+
+    INCLUDEPATH += /usr/include/c++/4.9.2/
     target.path = /usr/local/lib/radiy
     INSTALLS += target
 

@@ -8,10 +8,13 @@
 #include <QTime>
 #include <QFile>
 #include <QVector>
+#include <cmath>
+#include <QTimerEvent>
 
 
 typedef int FrequencyGrid;
 typedef int LevelControlMode;
+
 
 /* Класс Generator является базовым для всех USB генераторов компании РАДИЙ ТН и
  * и определяет интерфейс производных классов
@@ -26,6 +29,7 @@ typedef int LevelControlMode;
 class Generator : public QObject
 {
   Q_OBJECT
+    friend class Searcher;
 public:
     explicit Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFreq, float i_tSweepMin, float i_tSweepMax, QObject * parent = 0);
 
@@ -52,16 +56,16 @@ public:
     // Возврат шага частотной сетки
     virtual FrequencyGrid GENERATORS_EXPORT getFrequencyGrid() = 0;
 
-    //Установить связь с устройством с заданным pid и vid ( работает только если нет устройств
-    // с одинаковыми pid и vid)
-    virtual bool GENERATORS_EXPORT autoconnect() = 0;
+
     //Установить связь с заданным устройством
-    virtual bool GENERATORS_EXPORT connect(QSerialPortInfo *) = 0;
+    virtual bool GENERATORS_EXPORT connect(QSerialPortInfo &info) = 0;
+    // Закрыть устройство
+    virtual void GENERATORS_EXPORT disconnect()  = 0;
 
     // Получить список доступных устройств
-    virtual QList<QSerialPortInfo> GENERATORS_EXPORT getAvailablePorts() = 0;
+    static QList<QSerialPortInfo> GENERATORS_EXPORT getAvailablePorts();
     // Получить информацию о текущем порте
-    virtual QSerialPortInfo GENERATORS_EXPORT getPortInfo() = 0;
+    QSerialPortInfo GENERATORS_EXPORT getPortInfo();
 
     // Включить вывод информации в консоль
     void GENERATORS_EXPORT enableVerbose(bool);
@@ -71,7 +75,7 @@ public:
     // Переключение режима управление сигнала (по умолчанию стоит режим управления амплитудой)
     virtual void GENERATORS_EXPORT setLevelControlMode(LevelControlMode mode) = 0;
     // Возврат текущего режима управления сигналом генератора
-    virtual int GENERATORS_EXPORT getLevelControlMode() = 0;
+    virtual LevelControlMode GENERATORS_EXPORT getLevelControlMode() = 0;
 
     //возможные сетки частот генератора
     enum eFrequencyGrid {
@@ -93,6 +97,8 @@ public:
         Attenuation
     };
 
+
+
 signals:
     void error(QString e);
     void disconnected();
@@ -102,8 +108,10 @@ signals:
 
 protected:
 
+    void timerEvent(QTimerEvent *event) Q_DECL_OVERRIDE;
     float roundToGrid(float);
      void  printMessage(QString message);
+
 
     const int vid;
     const int pid;
