@@ -99,10 +99,41 @@ bool G4409::turnOn(bool i_on)
     return false;
 }
 
-/* Коммутация генератора в зависимости от режима работы*/
+bool G4409::setAmp(float &m_amp)
+{
+    Test test;
+    serialPort.write((char *)&test, sizeof(test));
+
+#ifdef QT_DEBUG
+    qDebug() << "First syntheziser buffer: ";
+    for (uint i = 0; i < sizeof(test.data); ++i)
+        qDebug() << QString("%1").arg(test.data[i], 2, 16, QChar('0'));
+     for (uint i = 0; i < sizeof(test.freq); ++i)
+        qDebug() << QString("%1").arg(test.freq[i], 2, 16, QChar('0'));
+#endif
+
+    return checkResponse();
+}
+
+float G4409::getAmp()
+{
+    return currentAmp;
+}
+
+bool G4409::setAttenuation(float &attenuation)
+{
+    return false;
+}
+
+float G4409::getAttenuation()
+{
+    return NAN;
+}
+
 bool G4409::commute(quint8 key)
 {
-    if (on)
+    //if (on)
+    if (true)
 
         switch (key)
         {
@@ -122,18 +153,18 @@ bool G4409::commute(quint8 key)
 
         }
     else
-        switcher.value = 0;
+        switcher.value = 2;
 
 
 
     // Передаем его в генератор
     serialPort.write((char *)&switcher , sizeof( switcher));
 
-    #ifdef QT_DEBUG
-       qDebug() << "Switcher buffer: ";
-       for (uint i = 0; i < sizeof(switcher.value); ++i)
-        qDebug() << switcher.value;
-    #endif
+#ifdef QT_DEBUG
+    qDebug() << "Switcher buffer: ";
+        qDebug() << QString("%1").arg(switcher.value, 2, 16, QChar('0'));
+#endif
+
 
     // Проверяем ответ
     bool success;
@@ -146,19 +177,7 @@ bool G4409::commute(quint8 key)
     return true;
 }
 
-bool G4409::setAmp(float &m_amp)
-{
-    Test test;
-    serialPort.write((char *)&test, sizeof(test));
-    return checkResponse();
-}
-
-float G4409::getAmp()
-{
-    return currentAmp;
-}
-
-bool G4409::setFrequency(float &m_freq)
+bool G4409::setFrequency(float &m_fHz)
 {
 //    if (!connected) {
 //        printMessage("Can't execute command. Generator is not connected.");
@@ -166,26 +185,32 @@ bool G4409::setFrequency(float &m_freq)
 //    }
 
     // Обработка входных данных
-    if ( m_freq < lowestFrequency)
-        m_freq = lowestFrequency;
-    if ( m_freq > highestFrequency )
-        m_freq = highestFrequency;
+    if ( m_fHz < lowestFrequency)
+        m_fHz = lowestFrequency;
+    if ( m_fHz > highestFrequency )
+        m_fHz = highestFrequency;
 
     // Округление до деления выбранной сетки
 //    m_freq = roundToGrid(m_freq);
 
-    currentFrequency = m_freq;
-    int f = m_freq / 1e6;
+    currentFrequency = m_fHz;
+    int fMHz = m_fHz / 1e6;
 
-    quint16 k = log2(6000 / f);
+    quint16 k = log2(6000 / fMHz);
     quint16 n = 0x8F + (k<<4);
     syntheziser1.data[5] = n;
     syntheziser1.data[6] = 0x45;
     syntheziser1.data[7] = 0xFC;
     int tmp1 = std::pow(2, k);
-    int tmp2 = (tmp1 * f ) /  25 ;
-    int tmp3 = ((tmp1 * f)  %  25) * 100;
-    syntheziser1.freq= ( tmp2 << 15 ) + (  tmp3<< 3 );
+    int tmp2 = (tmp1 * fMHz ) /  25 ;
+    int tmp3 = ((tmp1 * fMHz)  %  25) * 100;
+    quint32 f_Code= ( tmp2 << 15 ) + (  tmp3<< 3 );
+
+    for (qint8 k = sizeof(syntheziser1.freq) - 1; k >= 0; --k  )
+    {
+    syntheziser1.freq[ k ] = (quint8)f_Code;
+    f_Code = f_Code >> 8;
+    }
 
     serialPort.write((char *)&syntheziser1, sizeof(syntheziser1));
     bool status = checkResponse();
@@ -194,16 +219,17 @@ bool G4409::setFrequency(float &m_freq)
         qDebug() << "First syntheziser buffer: ";
         for (uint i = 0; i < sizeof(syntheziser1.data); ++i)
             qDebug() << QString("%1").arg(syntheziser1.data[i], 2, 16, QChar('0'));
-        qDebug() << QString("%1").arg(syntheziser1.freq, 8, 16, QChar('0'));
+        for (uint i = 0; i < sizeof(syntheziser1.freq); ++i)
+           qDebug() << QString("%1").arg(syntheziser1.freq[i], 2, 16, QChar('0'));
     #endif
 
     if (!status)
            return false;
 
-    printMessage("Setted Frequency " + QString::number(f) + "МHz");
+    printMessage("Setted Frequency " + QString::number(fMHz) + "МHz");
 
     float amp = currentAmp;
-    setAmp(amp);
+    //setAmp(amp);
     emit newAmplitude(amp);
 
        return true;
