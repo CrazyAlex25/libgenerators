@@ -21,7 +21,7 @@ Generator::Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFr
     sweepMode(SweepToHigh),
     tSweepMin(i_tSweepMin),
     tSweepMax(i_tSweepMax),
-    levelControlMode(-1),
+    levelControlMode(Amplitude),
     fAmpCorrectionStep(NAN),
     freqSweepTimerId(-1),
     serialPortInfo(NULL),

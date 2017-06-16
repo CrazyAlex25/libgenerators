@@ -11,20 +11,22 @@ G4409::G4409(QObject *parent)  :
                                           0.020, // tSweepMin
                                           1000, // tSweepMax
                                           parent),
+    synthLevel(SynthLevelP5),
     referenceFrequency(UnknownRefFreq),
-    attenuationMax(63),
+    attenuationMax(63.5),
     attenuationMin(0),
-    attenuationStep(0.5)
+    attenuationStep(0.25)
 {
 
     Q_INIT_RESOURCE(amp);
 
 
-    syntheziser1.id= 0x01;
 
-    syntheziser2.id = 0x02;
+    attenuator1.id = 0;
+    attenuator2.id = 1;
 
     connectionTimerId = startTimer(500);
+
 }
 
 G4409::~G4409()
@@ -101,18 +103,36 @@ bool G4409::turnOn(bool i_on)
 
 bool G4409::setAmp(float &m_amp)
 {
-    Test test;
-    serialPort.write((char *)&test, sizeof(test));
+    currentAmp = m_amp;
+    bool success = false;
 
-#ifdef QT_DEBUG
-    qDebug() << "First syntheziser buffer: ";
-    for (uint i = 0; i < sizeof(test.data); ++i)
-        qDebug() << QString("%1").arg(test.data[i], 2, 16, QChar('0'));
-     for (uint i = 0; i < sizeof(test.freq); ++i)
-        qDebug() << QString("%1").arg(test.freq[i], 2, 16, QChar('0'));
-#endif
+    /* В зависимости от режима управления уровнем сигнала либо идет пересчет
+     * амплитуды в ослабление аттенюатора, либо нет.
+     */
+    switch (levelControlMode)
+    {
+    case Amplitude:
+    {
+         double maxAmp = 1; //getAmpCorrection();
 
-    return checkResponse();
+         if (m_amp > maxAmp)
+             m_amp = maxAmp;
+
+         float attenuation = 20 * log10(maxAmp / m_amp);
+
+         success = setAttenuation(attenuation);
+
+         m_amp = maxAmp / pow(10, attenuation / 20);
+
+
+        break;
+    }
+    case Attenuation:
+    {
+        success = setAttenuation(m_amp);
+    }
+    }
+    return success;
 }
 
 float G4409::getAmp()
@@ -122,7 +142,56 @@ float G4409::getAmp()
 
 bool G4409::setAttenuation(float &attenuation)
 {
-    return false;
+    if (!connected) {
+        printMessage("Can't set attenuator. Generator is not connected.");
+        return false;
+    }
+
+    if (attenuation > attenuationMax )
+        attenuation = attenuationMax;
+
+    if (attenuation < attenuationMin)
+        attenuation = attenuationMin;
+
+   // attenuation = round(attenuation / attenuationStep) * attenuationStep; // округление до шага аттенюатора
+
+    quint8 halfRange = attenuationMax * 2;
+    attenuator1.data = (quint8) (attenuation * 4);
+    if (attenuator1.data > halfRange)
+        attenuator1.data = halfRange;
+    attenuator2.data = ((quint8) (attenuation * 4)) - attenuator1.data;
+
+    serialPort.write((char *)&attenuator1, sizeof(attenuator1) / sizeof(char));
+
+    #ifdef QT_DEBUG
+        qDebug() << "Attenuation buffer: ";
+       for (uint i = 0; i < sizeof(attenuator1.data); ++i)
+        qDebug() << QString("%1").arg(attenuator1.data, 2, 10, QChar('0'));
+    #endif
+
+
+    bool  success = checkResponse();
+    if (!success) {
+        //emit error ("Не удалось установить амплитуду");
+        return false;
+    }
+
+    serialPort.write((char *)&attenuator2, sizeof(attenuator2) / sizeof(char));
+
+    #ifdef QT_DEBUG
+        qDebug() << "atttenuation buffer: ";
+       for (uint i = 0; i < sizeof(attenuator2.data); ++i)
+        qDebug() <<QString("%1").arg(attenuator2.data, 2, 10, QChar('0'));
+    #endif
+
+    success = checkResponse();
+    if (!success) {
+        //emit error ("Не удалось установить амплитуду");
+        return false;
+    }
+
+   printMessage( "Setted Attenuation  " + QString::number(attenuation) + "dB.");
+    return true;
 }
 
 float G4409::getAttenuation()
@@ -137,12 +206,12 @@ bool G4409::commute(quint8 key)
 
         switch (key)
         {
-        case LowBand:
+        case LowFrequency:
             {
             switcher.value = 1;
             break;
             }
-        case HighBand:
+        case HighFrequency:
             {
             switcher.value = 0;
             break;
@@ -177,12 +246,12 @@ bool G4409::commute(quint8 key)
     return true;
 }
 
-bool G4409::setFrequency(float &m_fHz)
+bool G4409:: setFrequency(float &m_fHz)
 {
-//    if (!connected) {
-//        printMessage("Can't execute command. Generator is not connected.");
-//        return false;
-//    }
+    if (!connected) {
+        printMessage("Can't execute command. Generator is not connected.");
+        return false;
+    }
 
     // Обработка входных данных
     if ( m_fHz < lowestFrequency)
@@ -194,37 +263,84 @@ bool G4409::setFrequency(float &m_fHz)
 //    m_freq = roundToGrid(m_freq);
 
     currentFrequency = m_fHz;
-    int fMHz = m_fHz / 1e6;
+    float fMHz = m_fHz / 1e6;
+    float fSynthMHz;
 
-    quint16 k = log2(6000 / fMHz);
-    quint16 n = 0x8F + (k<<4);
-    syntheziser1.data[5] = n;
-    syntheziser1.data[6] = 0x45;
-    syntheziser1.data[7] = 0xFC;
-    int tmp1 = std::pow(2, k);
-    int tmp2 = (tmp1 * fMHz ) /  25 ;
-    int tmp3 = ((tmp1 * fMHz)  %  25) * 100;
-    quint32 f_Code= ( tmp2 << 15 ) + (  tmp3<< 3 );
+    // Формирование команд на нужный режим работ генератора
+    if ( fMHz <= 25){
 
-    for (qint8 k = sizeof(syntheziser1.freq) - 1; k >= 0; --k  )
-    {
-    syntheziser1.freq[ k ] = (quint8)f_Code;
-    f_Code = f_Code >> 8;
+        // НАстройка синтезатора
+      fSynthMHz = 100;
+      syntheziser.data[6] = 0x45;
+      syntheziser.data[7] = 0xDC;
+
+      // Настройка DDS
+      int fDds = std::pow(2, 32) * (fMHz / 100);
+      for (qint8 k = sizeof(dds.freq) - 1; k >= 0; --k  )
+      {
+      dds.freq[ k ] = (quint8)fDds;
+      fDds = fDds >> 8;
+      }
+
+    } else {
+        // Настройка синтезатора
+        fSynthMHz = fMHz;
+        syntheziser.data[6] = 0x44;
+        syntheziser.data[7] = synthLevel;
+
     }
 
-    serialPort.write((char *)&syntheziser1, sizeof(syntheziser1));
+
+        quint16 k = log2(6000 / fSynthMHz);
+        quint16 n = 0x8F + (k<<4);
+        syntheziser.data[5] = n;
+
+        int tmp1 = std::pow(2, k) * fSynthMHz;
+        int tmp2 = tmp1 /  25 ;
+        int tmp3 = ( tmp1  %  25) * 100;
+        quint32 f_Code= ( tmp2 << 15 ) + (  tmp3<< 3 );
+
+        for (qint8 k = sizeof(syntheziser.freq) - 1; k >= 0; --k  )
+        {
+        syntheziser.freq[ k ] = (quint8)f_Code;
+        f_Code = f_Code >> 8;
+        }
+
+
+
+    serialPort.write((char *)&syntheziser, sizeof(syntheziser));
     bool status = checkResponse();
 
     #ifdef QT_DEBUG
         qDebug() << "First syntheziser buffer: ";
-        for (uint i = 0; i < sizeof(syntheziser1.data); ++i)
-            qDebug() << QString("%1").arg(syntheziser1.data[i], 2, 16, QChar('0'));
-        for (uint i = 0; i < sizeof(syntheziser1.freq); ++i)
-           qDebug() << QString("%1").arg(syntheziser1.freq[i], 2, 16, QChar('0'));
+        for (uint i = 0; i < sizeof(syntheziser.data); ++i)
+            qDebug() << QString("%1").arg(syntheziser.data[i], 2, 16, QChar('0'));
+        for (uint i = 0; i < sizeof(syntheziser.freq); ++i)
+           qDebug() << QString("%1").arg(syntheziser.freq[i], 2, 16, QChar('0'));
     #endif
 
     if (!status)
            return false;
+
+    if (fMHz <= 25) {
+        //  Отправка команды DDS
+        serialPort.write((char *)&dds, sizeof(dds));
+        bool status = checkResponse();
+
+        #ifdef QT_DEBUG
+            qDebug() << "DDS buffer: ";
+            qDebug() << QString("%1").arg(dds.phase, 2, 16, QChar('0'));
+            for (uint i = 0; i < sizeof(dds.freq); ++i)
+                qDebug() << QString("%1").arg(dds.freq[i], 2, 16, QChar('0'));
+        #endif
+
+       if (!status)
+            return false;
+
+       commute(LowFrequency);
+    } else {
+        commute(HighFrequency);
+    }
 
     printMessage("Setted Frequency " + QString::number(fMHz) + "МHz");
 
@@ -314,6 +430,7 @@ bool G4409::connect(QSerialPortInfo &info)
     serialPort.write((char *)&reset , sizeof( reset));
     connected = checkResponse();
 
+    commute(LowFrequency);
     printMessage( "Generator has been connected");
 
 
@@ -340,10 +457,42 @@ void G4409::writeHead()
 
 void G4409::setLevelControlMode(LevelControlMode mode)
 {
-
+    switch (mode) {
+    case Amplitude:
+        levelControlMode = Amplitude;
+        break;
+    case Attenuation:
+        levelControlMode = Attenuation;
+        break;
+    default:
+        emit error("Задан неправильный режим управление уровнем сигнала");
+        break;
+    }
 }
 
 LevelControlMode G4409::getLevelControlMode()
 {
-    return 0;
+    return levelControlMode;
+}
+
+void G4409::setSynthLevel(int level)
+{
+    switch (level)
+    {
+    case Off:
+        synthLevel = 0xDC;
+        break;
+    case SynthLevelM4:
+        synthLevel = 0xE4;
+        break;
+    case SynthLevelM1:
+        synthLevel = 0xEC;
+        break;
+    case SynthLevelP2:
+        synthLevel = 0xF4;
+        break;
+    case SynthLevelP5:
+        synthLevel = 0xFC;
+        break;
+    }
 }

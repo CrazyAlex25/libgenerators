@@ -89,9 +89,8 @@ bool G3000::connect(QSerialPortInfo &info)
         return false;
     }
 
-    serialPort.write((char *)&head , sizeof( head));
-    connected = checkResponse();
 
+    connected = commute(1);
     printMessage( "Generator has been connected");
 
 
@@ -111,9 +110,9 @@ void G3000::disconnect()
 /* Включение/выключение генератора*/
 bool G3000::turnOn(bool i_on)
 {
+
     if (!connected) {
         printMessage( "Can't execute command. Generator is not connected");
-
         return false;
     }
 
@@ -208,11 +207,10 @@ bool G3000::setAmp(float &amp)
 // Установка значений аттенюатора. Функция возвращает значение реально установленной амплитуды
 bool G3000::setAttenuation(float &attenuation)
 {
-
-    if (!connected) {
-        printMessage("Can't set attenuator. Generator is not connected.");
-        return false;
-    }
+       if (!connected) {
+           printMessage("Can't set attenuator. Generator is not connected.");
+           return false;
+       }
 
     if (attenuation > attenuationMax )
         attenuation = attenuationMax;
@@ -220,18 +218,15 @@ bool G3000::setAttenuation(float &attenuation)
     if (attenuation < attenuationMin)
         attenuation = attenuationMin;
 
-    attenuation = round(attenuation / attenuationStep) * attenuationStep; // округление до шага аттенюатора
-
     attenuator1.data = (quint8) (attenuation);
     attenuator2.data = ((quint8) (attenuation * 2)) - attenuator1.data;
 
-    //float V = (attenuation[0]  + attenuation[1]) / 2;
     attenuator2.data += 128;
 
     serialPort.write((char *)&attenuator1, sizeof(attenuator1) / sizeof(char));
 
     #ifdef QT_DEBUG
-        qDebug() << "Attenuation buffer: ";
+        qDebug() << "Attenuation 1 buffer: ";
        for (uint i = 0; i < sizeof(attenuator1.data); ++i)
         qDebug() << attenuator1.data;
     #endif
@@ -247,7 +242,7 @@ bool G3000::setAttenuation(float &attenuation)
     serialPort.write((char *)&attenuator2, sizeof(attenuator2) / sizeof(char));
 
     #ifdef QT_DEBUG
-        qDebug() << "atttenuation buffer: ";
+        qDebug() << "atttenuation 2 buffer: ";
        for (uint i = 0; i < sizeof(attenuator2.data); ++i)
         qDebug() << attenuator2.data;
     #endif
@@ -328,7 +323,7 @@ bool G3000::checkResponse()
 {
     // Ждем ответа от генератора
     bool  success = true;
-    success &= serialPort.waitForReadyRead(3000);
+    success &= serialPort.waitForReadyRead(100);
 
     if (!success) {   
         printMessage("No response from generator");

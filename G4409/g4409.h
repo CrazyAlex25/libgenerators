@@ -34,6 +34,23 @@ public:
     void GENERATORS_EXPORT setLevelControlMode(LevelControlMode mode) Q_DECL_OVERRIDE;
     LevelControlMode GENERATORS_EXPORT getLevelControlMode() Q_DECL_OVERRIDE;
 
+    void GENERATORS_EXPORT setSynthLevel(int level);
+
+    // Состояния коммутатора
+    enum eSwitcherState{
+        LowFrequency,
+        HighFrequency
+    };
+
+
+    enum eSynthLevel{
+        Off,
+        SynthLevelM4,
+        SynthLevelM1,
+        SynthLevelP2,
+        SynthLevelP5,
+    };
+
 signals:
     void error(QString e);
     void disconnected();
@@ -43,9 +60,9 @@ signals:
 
 private:
 
+    bool  commute(quint8);
     bool setAttenuation(float &attenuation);
     float getAttenuation();
-    bool commute(quint8);
     bool checkResponse();
     float getReferenceFrequency(int refFreq);
     void loadCalibrationAmp();
@@ -60,12 +77,7 @@ private:
         UnknownRefFreq
     };
 
-    // Состояния коммутатора
-    enum eSwitcherState{
-        LowBand,
-        HighBand
-    };
-
+    quint8 synthLevel;
     float referenceFrequency;
 
     float attenuationMax;
@@ -74,8 +86,8 @@ private:
 
     Head4409 head;
     Response4409 response;
-    Syntheziser4409 syntheziser1;
-    Syntheziser4409 syntheziser2;
+    Syntheziser4409 syntheziser;
+    Dds4409  dds;
     Attenuator4409 attenuator1;
     Attenuator4409 attenuator2;
     Switcher4409 switcher;
