@@ -7,7 +7,7 @@
 #include <G4409/commands4409.h>
 
 
-class G4409 : public Generator
+class  GENERATORS_EXPORT  G4409 : public Generator
 {
     Q_OBJECT
     friend class Searcher;
