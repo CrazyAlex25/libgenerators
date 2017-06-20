@@ -149,7 +149,7 @@ bool G4409::setAttenuation(float &attenuation)
     if (attenuation < attenuationMin)
         attenuation = attenuationMin;
 
-   // attenuation = round(attenuation / attenuationStep) * attenuationStep; // округление до шага аттенюатора
+    attenuation = round(attenuation / attenuationStep) * attenuationStep; // округление до шага аттенюатора
 
     quint8 halfRange = attenuationMax * 2;
     attenuator1.data = (quint8) (attenuation * 4);

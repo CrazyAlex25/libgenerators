@@ -188,7 +188,8 @@ bool G3000::setAmp(float &amp)
 
          success = setAttenuation(attenuation);
 
-         amp = maxAmp / pow(10, attenuation / 20);
+         float koef  = pow (10.0, attenuation / 20.0);
+         amp = maxAmp / koef ;
 
 
         break;
@@ -216,6 +217,7 @@ bool G3000::setAttenuation(float &attenuation)
     if (attenuation < attenuationMin)
         attenuation = attenuationMin;
 
+    attenuation = round(attenuation / attenuationStep) * attenuationStep; // округление до шага аттенюатора
     attenuator1.data = (quint8) (attenuation);
     attenuator2.data = ((quint8) (attenuation * 2)) - attenuator1.data;
 

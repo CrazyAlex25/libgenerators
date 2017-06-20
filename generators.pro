@@ -28,7 +28,7 @@ HEADERS +=\
     G3000/commands3000.h \
     searcher.h
 
-VERSION = 1.1.1
+VERSION = 1.1.2
 
 unix {
 
