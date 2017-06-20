@@ -14,6 +14,7 @@
 
 typedef int FrequencyGrid;
 typedef int LevelControlMode;
+typedef int FmMode;
 
 
 /* Класс Generator является базовым для всех USB генераторов компании РАДИЙ ТН и
@@ -31,7 +32,7 @@ class Generator : public QObject
   Q_OBJECT
     friend class Searcher;
 public:
-    explicit Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFreq, float i_tSweepMin, float i_tSweepMax, QObject * parent = 0);
+    explicit Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFreq, float i_tFmMin, float i_tFmMax, float i_fFmBandStop, QObject * parent = 0);
 
     //Включение генератора
     virtual bool GENERATORS_EXPORT turnOn(bool i_on) = 0;
@@ -39,17 +40,19 @@ public:
     // Установка амплитуды
     virtual bool GENERATORS_EXPORT setAmp(float &m_amp) = 0;
     // Возврат текущего значения амплитуды
-    virtual float GENERATORS_EXPORT getAmp() = 0;
+    float GENERATORS_EXPORT getAmp();
 
     // Установка частоты
     virtual bool GENERATORS_EXPORT setFrequency(float &m_f) = 0;
     // Возврат текущего значения частоты
-    virtual float GENERATORS_EXPORT getFrequency() = 0;
+    float GENERATORS_EXPORT getFrequency();
 
-    // Запуск качания частоты
-    virtual bool GENERATORS_EXPORT startFrequencySweep(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep, int i_sweepMode) = 0;
-    // Остановка качания частоты
-    virtual void GENERATORS_EXPORT stopFrequencySweep() = 0;
+    // Запуск ЧМ
+    bool GENERATORS_EXPORT startFm(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep);
+    // Остановка ЧМ
+    void GENERATORS_EXPORT stopFm();
+    // Выбор режима ЧМ
+    void GENERATORS_EXPORT setFmMode(FmMode mode);
 
     // Установка шага частотной сетки
     virtual void GENERATORS_EXPORT setFrequencyGrid(int i_frequencyGrid) = 0;
@@ -86,9 +89,10 @@ public:
     };
 
     // режимы качания частоты
-    enum eSweepMode{
-        SweepToHigh, // от меньшей к большей
-        SweepToLow   // от большей к меньше
+    enum eFmMode{
+        UpChirp, // от меньшей к большей
+        DownChirp,   // от большей к меньшей
+        FHSS // ППРЧ
     };
 
     // режимы управления уровнем сигнала генератора
@@ -104,11 +108,13 @@ signals:
     void disconnected();
     void newFrequency(float freq_Hz);
     void newAmplitude(float amp_V);
-    void newTSweep(float t_s);
+    void newTFm(float t_s);
 
 protected:
 
     void timerEvent(QTimerEvent *event) Q_DECL_OVERRIDE;
+    void loadCalibrationAmp(QString filename);
+    double getAmpCorrection();
     float roundToGrid(float);
      void  printMessage(QString message);
 
@@ -130,15 +136,19 @@ protected:
     float currentAmp;
     float ampMax;
 
-    float fSweepStart;
-    float fSweepStop;
-    float fSweepStep;
-    float fSweep;
-    int sweepMode;
+    float fFmStart;
+    float fFmStop;
+    float fFmStep;
+    float fFm;
+    float fFmStopBand;   //Частота, которое делит весь диапазон частот на нижний и верхний
+                                     // При переходе через нее идет переходный процесс, поэтому качать частоту
+                                     // непрерывно невозможно. Если такого разделения нет, то установить значение
+                                     // fFmStopBand > highestFrequency.
+    int fmMode;
 
-    const float tSweepMin;
-    const float tSweepMax;
-    QTime tSweepStart;
+    const float tFmMin;
+    const float tFmMax;
+    QTime tFmStart;
 
     int levelControlMode;
 
@@ -146,7 +156,7 @@ protected:
     float fAmpCorrectionStep;
 
     int connectionTimerId;
-    int freqSweepTimerId;
+    int FmTimerId;
 
     QSerialPort serialPort;
     QSerialPortInfo *serialPortInfo;

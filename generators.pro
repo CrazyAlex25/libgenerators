@@ -28,7 +28,7 @@ HEADERS +=\
     G3000/commands3000.h \
     searcher.h
 
-VERSION = 1.1.0
+VERSION = 1.1.1
 
 unix {
 
@@ -63,7 +63,9 @@ win32 {
 }
 
 DISTFILES += \
-    calibration.txt
+    calibration.txt \
+    calibration4409.txt \
+    calibration4409.txt
 
 RESOURCES += \
     amp.qrc

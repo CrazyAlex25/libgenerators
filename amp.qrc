@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>calibration3000.txt</file>
+        <file>calibration4409.txt</file>
     </qresource>
 </RCC>

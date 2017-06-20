@@ -6,17 +6,15 @@ G3000::G3000(QObject *parent) :
                                           0x6001, //pid
                                           1e6, // lowestFreq
                                           3e9, // highestFreq
-                                          0.020, // tSweepMin
-                                          1000, // tSweepMax
+                                          0.020, // tFmMin
+                                          1000, // tFmMax
+                                          275e6, //fFmBandStop
                                           parent),
     referenceFrequency(UnknownRefFreq),
     attenuationMax(63),
     attenuationMin(0),
     attenuationStep(0.5)
 {
-
-    Q_INIT_RESOURCE(amp);
-
 
     setFrequencyGrid(Grid10);
     syntheziser1.data[7] = 36;
@@ -94,7 +92,7 @@ bool G3000::connect(QSerialPortInfo &info)
     printMessage( "Generator has been connected");
 
 
-    loadCalibrationAmp();
+    loadCalibrationAmp(":/calibration3000.txt");
 
     printMessage("Amp calibration loaded");
 
@@ -255,65 +253,6 @@ bool G3000::setAttenuation(float &attenuation)
 
    printMessage( "Setted Attenuation  " + QString::number(attenuation) + "dB.");
     return true;
-}
-
-float G3000::getAmp()
-{
-    return currentAmp;
-}
-
-double G3000::getAmpCorrection()
-{
-    if (std::isnan(currentFrequency)) {
-        return ampCorrection[1];
-    } else {
-        int ind = round(currentFrequency / fAmpCorrectionStep);
-        return ampCorrection[ind];
-    }
-
-}
-
-void G3000::loadCalibrationAmp()
-{
-
-    QFile file(":/calibration3000.txt");
-    if (!file.open(QIODevice::ReadOnly))
-        emit error("Не найден файл грубой калибровки");
-
-    QTextStream in(&file);
-    float f1;
-    float f2;
-    double P_dBm;
-    double amp_V;
-    in >> f1;
-    in >> P_dBm;
-    amp_V = pow(10, ((P_dBm + 30 + 16.99)/ 20) - 3) * sqrt(2);
-    ampCorrection.push_back(amp_V);
-
-    if (amp_V > ampMax)
-        ampMax = amp_V;
-
-    in >> f2;
-    in >> P_dBm;
-    amp_V = pow(10, ((P_dBm + 30 + 16.99)/ 20) - 3) * sqrt(2);
-    ampCorrection.push_back(amp_V);
-    fAmpCorrectionStep = (f2 - f1) * 1e6;
-
-
-    if (amp_V > ampMax)
-        ampMax = amp_V;
-
-    while (!in.atEnd())
-    {
-        in >> f1;
-        in >> P_dBm;
-        amp_V = pow(10, ((P_dBm + 30 + 16.99)/ 20) - 3) * sqrt(2);
-        ampCorrection.push_back(amp_V);
-
-
-        if (amp_V > ampMax)
-            ampMax = amp_V;
-    }
 }
 
 /* Метод проверяет ответ от генератора. Возращает true, если получен
@@ -662,131 +601,9 @@ bool G3000 :: setFrequency(float &m_freq)
     return true;
 }
 
-float G3000::getFrequency()
-{
-    return currentFrequency;
-}
-
-bool G3000::startFrequencySweep(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep, int i_sweepMode)
-{
-    if (!connected) {
-        printMessage("Can't execute command. Generator is not connected");
-        return false;
-    }
-
-    if (std::isnan(m_fStart)) {
-        emit error("Не установлена нижняя граница");
-        return false;
-    }
-
-    if (std::isnan(m_fStop)) {
-        emit error("Не установлена верхняя граница");
-        return false;
-    }
-
-    if (std::isnan(m_fStep)) {
-        emit error("Не установлен шаг сканирования");
-        return false;
-    }
-
-    if (std::isnan(m_timeStep)) {
-        emit error("Не установлен период сканирования");
-        return false;
-    }
-
-    if (m_timeStep < tSweepMin)
-        m_timeStep = tSweepMin;
-
-    if (m_timeStep > tSweepMax)
-        m_timeStep = tSweepMax;
-
-    int t_msec = round(m_timeStep * 1e3);
-    m_timeStep = t_msec / 1e3;
-
-    fSweepStep = m_fStep;
-    fSweepStart = m_fStart;
-    fSweepStop = m_fStop;
-
-    if (m_fStart > m_fStop) {
-        float tmp = m_fStart;
-        m_fStart = m_fStop;
-        m_fStop = tmp;
-    }
 
 
-    if ((m_fStop > 275e6) && (m_fStart <= 275e6)) {
-        emit error("Сканирование возможно в интервалах [1 МГц; 275МГц) и [275 МГц; 3ГГЦ] ");
-        return false;
-    }
 
-    if (m_fStart < lowestFrequency)
-        m_fStart = lowestFrequency;
-
-    if (m_fStart > highestFrequency)
-        m_fStart = highestFrequency;
-
-    if (m_fStop < lowestFrequency)
-        m_fStop = lowestFrequency;
-
-    if (m_fStop > highestFrequency)
-        m_fStop = highestFrequency;
-
-    m_fStep = roundToGrid(fabs(m_fStep));
-
-    fSweepStart = m_fStart;
-    fSweepStop = m_fStop;
-    fSweep = fSweepStart;
-
-    switch (i_sweepMode)
-    {
-    case SweepToHigh:
-        sweepMode = SweepToHigh;
-        break;
-
-    case SweepToLow:
-        sweepMode = SweepToLow;
-        break;
-
-    default:
-        emit error("Неправильный режим перестройки частоты");
-        return false;
-        break;
-    }
-
-    //  Поиск минимальной амплитуды в полосе
-    float ampMin = ampMax;
-    for (quint64 f = fSweepStart; f < fSweepStop; f += fSweepStep)
-    {
-        int ind = f / fAmpCorrectionStep;
-
-        if (ampMin > ampCorrection[ind])
-            ampMin = ampCorrection[ind];
-    }
-
-    // ограничиваем амлитуду
-    if (currentAmp > ampMin)
-        currentAmp = ampMin;
-
-
-    freqSweepTimerId = startTimer(t_msec);
-    tSweepStart = QTime::currentTime();
-    setFrequency(fSweep);
-    emit newFrequency(fSweep);
-    return true;
-}
-
-void G3000 :: stopFrequencySweep()
-{
-    if (freqSweepTimerId != -1)
-        killTimer(freqSweepTimerId);
-
-    freqSweepTimerId = -1;
-    fSweepStart = NAN;
-    fSweepStop = NAN;
-    fSweepStep = NAN;
-    fSweep = NAN;
-
-}
 
 void G3000 :: setFrequencyGrid(int i_frequencyGrid)
 {

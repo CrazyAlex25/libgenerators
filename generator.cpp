@@ -3,7 +3,7 @@
 #include <QTextStream>
 #include <QDebug>
 
-Generator::Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFreq, float i_tSweepMin, float i_tSweepMax, QObject *parent) : QObject(parent),
+Generator::Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFreq, float i_tFmMin, float i_tFmMax, float i_fFmBandStop, QObject *parent) : QObject(parent),
     vid(i_vid),
     pid(i_pid),
     on(false),
@@ -12,22 +12,25 @@ Generator::Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFr
     log(true),
     lowestFrequency(i_lowestFreq),
     highestFrequency(i_highestFreq),
+    frequencyGrid(Grid10),
     currentFrequency(NAN),
     currentAmp(0),
-    fSweepStart(NAN),
-    fSweepStop(NAN),
-    fSweepStep(NAN),
-    fSweep(NAN),
-    sweepMode(SweepToHigh),
-    tSweepMin(i_tSweepMin),
-    tSweepMax(i_tSweepMax),
+    fFmStart(NAN),
+    fFmStop(NAN),
+    fFmStep(NAN),
+    fFm(NAN),
+    fFmStopBand (i_fFmBandStop),
+    fmMode(UpChirp),
+    tFmMin(i_tFmMin),
+    tFmMax(i_tFmMax),
     levelControlMode(Amplitude),
     fAmpCorrectionStep(NAN),
-    freqSweepTimerId(-1),
+    FmTimerId(-1),
     serialPortInfo(NULL),
     logFileName(QDir::currentPath()+"/log.txt")
 {
 
+    Q_INIT_RESOURCE(amp);
     QFile logFile(logFileName);
     if (logFile.open(QFile::WriteOnly)) {
         QTextStream logStream(&logFile);
@@ -79,34 +82,36 @@ void Generator::timerEvent(QTimerEvent * event)
     }
 
     // Переключение качания частоты
-    if  (event->timerId() == freqSweepTimerId) {
+    if  (event->timerId() == FmTimerId) {
 
-        switch (sweepMode) {
-        case SweepToHigh:
-            fSweep += fSweepStep;
+        switch (fmMode) {
+        case UpChirp:
+            fFm += fFmStep;
 
-            if ((fSweep >= fSweepStop))
-                fSweep = fSweepStart;
+            if ((fFm >= fFmStop))
+                fFm = fFmStart;
             break;
 
-        case SweepToLow:
-            fSweep -= fSweepStep;
+        case DownChirp:
+            fFm -= fFmStep;
 
-            if ((fSweep <= fSweepStart))
-                fSweep = fSweepStop;
+            if ((fFm <= fFmStart))
+                fFm = fFmStop;
             break;
         default:
+            emit error ("Выбран неправильный вид ЧМ");
             break;
         }
 
-        QTime tSweepStop = QTime::currentTime();
-        float tSweep =  tSweepStart.msecsTo(tSweepStop) * 1e-3;
-        emit newTSweep(tSweep);
-        setFrequency(fSweep);
+        QTime tFmStop = QTime::currentTime();
+        float tFm =  tFmStart.msecsTo(tFmStop) * 1e-3;
+        tFmStart = tFmStop;
+        emit newTFm(tFm);
+        setFrequency(fFm);
 
-        printMessage( "Setted Frequency" + QString::number(fSweep) + "Hz");
+        printMessage( "Setted Frequency" + QString::number(fFm) + "Hz");
 
-        emit newFrequency(fSweep);
+        emit newFrequency(fFm);
     }
 
 }
@@ -165,4 +170,191 @@ QSerialPortInfo Generator::getPortInfo()
     return *serialPortInfo;
 }
 
+void Generator::setFmMode(FmMode mode)
+{
+    switch (mode) {
+    case UpChirp:
+        fmMode = mode;
+        break;
+    case DownChirp:
+        fmMode = mode;
+        break;
+    case FHSS:
+        fmMode = mode;
+        break;
+    default:
+        emit error("Выбран неправильный вид ЧМ");
+        break;
+    }
+}
 
+bool Generator::startFm(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep)
+{
+    if (!connected) {
+        printMessage("Can't execute command. Generator is not connected");
+        return false;
+    }
+
+    if (std::isnan(m_fStart)) {
+        emit error("Не установлена нижняя граница");
+        return false;
+    }
+
+    if (std::isnan(m_fStop)) {
+        emit error("Не установлена верхняя граница");
+        return false;
+    }
+
+    if (std::isnan(m_fStep)) {
+        emit error("Не установлен шаг сканирования");
+        return false;
+    }
+
+    if (std::isnan(m_timeStep)) {
+        emit error("Не установлен период сканирования");
+        return false;
+    }
+
+    if (m_timeStep < tFmMin)
+        m_timeStep = tFmMin;
+
+    if (m_timeStep > tFmMax)
+        m_timeStep = tFmMax;
+
+    int t_msec = round(m_timeStep * 1e3);
+    m_timeStep = t_msec / 1e3;
+
+    fFmStep = m_fStep;
+    fFmStart = m_fStart;
+    fFmStop = m_fStop;
+
+    if (m_fStart > m_fStop) {
+        float tmp = m_fStart;
+        m_fStart = m_fStop;
+        m_fStop = tmp;
+    }
+
+
+    if ((m_fStop > fFmStopBand) && (m_fStart <= fFmStopBand)) {
+        emit error("Сканирование возможно в интервалах [1 МГц; 275МГц) и [275 МГц; 3ГГЦ] ");
+        return false;
+    }
+
+    if (m_fStart < lowestFrequency)
+        m_fStart = lowestFrequency;
+
+    if (m_fStart > highestFrequency)
+        m_fStart = highestFrequency;
+
+    if (m_fStop < lowestFrequency)
+        m_fStop = lowestFrequency;
+
+    if (m_fStop > highestFrequency)
+        m_fStop = highestFrequency;
+
+    m_fStep = roundToGrid(fabs(m_fStep));
+
+    fFmStart = m_fStart;
+    fFmStop = m_fStop;
+    fFm = fFmStart;
+
+//    //  Поиск минимальной амплитуды в полосе
+//    float ampMin = ampMax;
+//    for (quint64 f = fFmStart; f < fFmStop; f += fFmStep)
+//    {
+//        int ind = f / fAmpCorrectionStep;
+
+//        if (ampMin > ampCorrection[ind])
+//            ampMin = ampCorrection[ind];
+//    }
+
+//    // ограничиваем амлитуду
+//    if (currentAmp > ampMin)
+//        currentAmp = ampMin;
+
+
+    FmTimerId = startTimer(t_msec);
+    tFmStart = QTime::currentTime();
+    setFrequency(fFm);
+    emit newFrequency(fFm);
+    return true;
+}
+
+void Generator :: stopFm()
+{
+    if (FmTimerId != -1)
+        killTimer(FmTimerId);
+
+    FmTimerId = -1;
+    fFmStart = NAN;
+    fFmStop = NAN;
+    fFmStep = NAN;
+    fFm = NAN;
+
+}
+
+void Generator:: loadCalibrationAmp(QString fileName)
+{
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly))
+        emit error("Не найден файл грубой калибровки");
+
+    QTextStream in(&file);
+    float f1;
+    float f2;
+    double P_dBm;
+    double amp_V;
+    in >> f1;
+    in >> P_dBm;
+    amp_V = pow(10, ((P_dBm + 30 + 16.99)/ 20) - 3) * sqrt(2);
+    ampCorrection.push_back(amp_V);
+
+    if (amp_V > ampMax)
+        ampMax = amp_V;
+
+    in >> f2;
+    in >> P_dBm;
+    amp_V = pow(10, ((P_dBm + 30 + 16.99)/ 20) - 3) * sqrt(2);
+    ampCorrection.push_back(amp_V);
+    fAmpCorrectionStep = (f2 - f1) * 1e6;
+
+
+    if (amp_V > ampMax)
+        ampMax = amp_V;
+
+    while (!in.atEnd())
+    {
+        in >> f1;
+        in >> P_dBm;
+        amp_V = pow(10, ((P_dBm + 30 + 16.99)/ 20) - 3) * sqrt(2);
+        ampCorrection.push_back(amp_V);
+
+
+        if (amp_V > ampMax)
+            ampMax = amp_V;
+    }
+}
+
+
+double Generator::getAmpCorrection()
+{
+    if (std::isnan(currentFrequency)) {
+        return ampCorrection[1];
+    } else {
+        int ind = round(currentFrequency / fAmpCorrectionStep);
+        return ampCorrection[ind];
+    }
+
+}
+
+
+float Generator::getAmp()
+{
+    return currentAmp;
+}
+
+float Generator::getFrequency()
+{
+    return currentFrequency;
+}

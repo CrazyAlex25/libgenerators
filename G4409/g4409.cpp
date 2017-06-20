@@ -7,9 +7,10 @@ G4409::G4409(QObject *parent)  :
     Generator(0x0403, //vid
                                           0x6001, //pid
                                           9e3, // lowestFreq
-                                          4.4e9, // highestFreq
-                                          0.020, // tSweepMin
-                                          1000, // tSweepMax
+                                          6e9, // highestFreq
+                                          0.020, // tFmMin
+                                          1000, // tFmMax
+                                          8e9,  //fFmBandStop
                                           parent),
     synthLevel(SynthLevelP5),
     referenceFrequency(UnknownRefFreq),
@@ -18,7 +19,7 @@ G4409::G4409(QObject *parent)  :
     attenuationStep(0.25)
 {
 
-    Q_INIT_RESOURCE(amp);
+
 
 
 
@@ -133,11 +134,6 @@ bool G4409::setAmp(float &m_amp)
     }
     }
     return success;
-}
-
-float G4409::getAmp()
-{
-    return currentAmp;
 }
 
 bool G4409::setAttenuation(float &attenuation)
@@ -351,30 +347,25 @@ bool G4409:: setFrequency(float &m_fHz)
        return true;
 }
 
-float G4409::getFrequency()
-{
-    return currentFrequency;
-}
-
-bool G4409::startFrequencySweep(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep, int i_sweepMode)
-{
-    return false;
-}
-
-void G4409::stopFrequencySweep()
-{
-
-}
 
 void G4409::setFrequencyGrid(int i_frequencyGrid)
 {
-
+    switch (i_frequencyGrid)
+    {
+    case Grid10:
+    {
+        frequencyGrid = Grid10;
+        break;
+    }
+    default:
+        emit error("Выбранна недопустимая сетка частот");
+    }
 }
 
 
 FrequencyGrid G4409::getFrequencyGrid()
 {
-    return 0;
+    return frequencyGrid;
 }
 
 bool G4409::connect(QSerialPortInfo &info)
@@ -427,16 +418,14 @@ bool G4409::connect(QSerialPortInfo &info)
         return false;
     }
 
-    serialPort.write((char *)&reset , sizeof( reset));
-    connected = checkResponse();
 
-    commute(LowFrequency);
+    connected = commute(LowFrequency);
     printMessage( "Generator has been connected");
 
 
-   // loadCalibrationAmp();
+   loadCalibrationAmp(QString(":/calibration4409.txt"));
 
-   // printMessage("Amp calibration loaded");
+   printMessage("Amp calibration loaded");
 
 
      return connected;
