@@ -27,7 +27,7 @@ typedef int FmMode;
 * в файле log.txt, которые находится в одной папке с испольняемым файлом
 */
 
-class Generator : public QObject
+class GENERATORS_EXPORT Generator : public QObject
 {
   Q_OBJECT
     friend class Searcher;
