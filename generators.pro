@@ -32,7 +32,7 @@ VERSION = 1.1.2
 
 unix {
 
-    INCLUDEPATH += /usr/include/c++/4.9.2/
+    #INCLUDEPATH += /usr/include/c++/4.9.2/
     target.path = /usr/local/lib/radiy
     INSTALLS += target
 

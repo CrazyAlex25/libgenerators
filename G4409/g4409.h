@@ -6,7 +6,6 @@
 #include <generators_global.h>
 #include <G4409/commands4409.h>
 
-
 class  GENERATORS_EXPORT  G4409 : public Generator
 {
     Q_OBJECT

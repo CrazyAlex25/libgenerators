@@ -8,7 +8,6 @@
 #include <QTime>
 #include <QFile>
 #include <QVector>
-#include <cmath>
 #include <QTimerEvent>
 
 
@@ -117,6 +116,7 @@ protected:
     double getAmpCorrection();
     float roundToGrid(float);
      void  printMessage(QString message);
+     double log2(double x);
 
 
     const int vid;
@@ -126,7 +126,7 @@ protected:
     bool connected;
 
     bool verbose;
-    bool log;
+    bool logs;
 
     const float lowestFrequency;
     const float highestFrequency;
@@ -145,6 +145,7 @@ protected:
                                      // непрерывно невозможно. Если такого разделения нет, то установить значение
                                      // fFmStopBand > highestFrequency.
     int fmMode;
+    int fmCounter;
 
     const float tFmMin;
     const float tFmMax;

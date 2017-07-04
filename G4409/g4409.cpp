@@ -1,5 +1,4 @@
 #include "g4409.h"
-#include <cmath>
 #include <QDebug>
 #include <QThread>
 
@@ -99,7 +98,63 @@ bool G4409::checkResponse()
 
 bool G4409::turnOn(bool i_on)
 {
-    return false;
+    if (!connected) {
+        printMessage("Can't execute command. Generator is not connected.");
+        return false;
+    }
+
+
+    float fMHz =  currentFrequency / 1e6;
+
+
+    if ( fMHz <= 25){
+
+        if (i_on) {
+            syntheziser.data[6] = 0x45;
+            syntheziser.data[7] = 0xDC;
+        } else {
+            syntheziser.data[6] = 0x44;
+            syntheziser.data[7] = 0xDC;
+        }
+
+
+    } else {
+
+        if (i_on) {
+            syntheziser.data[6] = 0x44;
+            syntheziser.data[7] = synthLevel;
+        } else {
+            syntheziser.data[6] = 0x44;
+            syntheziser.data[7] = 0xDC;
+        }
+
+    }
+
+
+    serialPort.write((char *)&syntheziser, sizeof(syntheziser));
+    bool status = checkResponse();
+
+    #ifdef QT_DEBUG
+        qDebug() << "First syntheziser buffer: ";
+        for (uint i = 0; i < sizeof(syntheziser.data); ++i)
+            qDebug() << QString("%1").arg(syntheziser.data[i], 2, 16, QChar('0'));
+        for (uint i = 0; i < sizeof(syntheziser.freq); ++i)
+           qDebug() << QString("%1").arg(syntheziser.freq[i], 2, 16, QChar('0'));
+    #endif
+
+    if (!status)
+           return false;
+
+    if (i_on)
+        printMessage("Generator turned on");
+    else
+        printMessage("Generator turned off");
+
+    float amp = currentAmp;
+    //setAmp(amp);
+    emit newAmplitude(amp);
+
+    return true;
 }
 
 bool G4409::setAmp(float &m_amp)
@@ -286,8 +341,7 @@ bool G4409:: setFrequency(float &m_fHz)
 
     }
 
-
-        quint16 k = log2(6000 / fSynthMHz);
+        quint16 k = log2(2);//6000 / fSynthMHz);
         quint16 n = 0x8F + (k<<4);
         syntheziser.data[5] = n;
 

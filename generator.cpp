@@ -9,7 +9,7 @@ Generator::Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFr
     on(false),
     connected(false),
     verbose(false),
-    log(true),
+    logs(true),
     lowestFrequency(i_lowestFreq),
     highestFrequency(i_highestFreq),
     frequencyGrid(Grid10),
@@ -21,6 +21,7 @@ Generator::Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFr
     fFm(NAN),
     fFmStopBand (i_fFmBandStop),
     fmMode(UpChirp),
+    fmCounter(0),
     tFmMin(i_tFmMin),
     tFmMax(i_tFmMax),
     levelControlMode(Amplitude),
@@ -45,7 +46,7 @@ void Generator::printMessage(QString message)
     if (verbose)
         qDebug() << message;
 
-    if (log) {
+    if (logs) {
         QFile logFile(logFileName);
         if (logFile.open(QFile::Append | QFile::Text)) {
             QTextStream logStream(&logFile);
@@ -86,14 +87,14 @@ void Generator::timerEvent(QTimerEvent * event)
 
         switch (fmMode) {
         case UpChirp:
-            fFm += fFmStep;
+            fFm = fFmStep;
 
             if ((fFm >= fFmStop))
-                fFm = fFmStart;
+                fFm = fFmStart + fmCounter * fFmStep;
             break;
 
         case DownChirp:
-            fFm -= fFmStep;
+            fFm = fFmStart - fmCounter * fFmStep;
 
             if ((fFm <= fFmStart))
                 fFm = fFmStop;
@@ -123,7 +124,7 @@ void Generator::enableVerbose(bool input)
 
 void Generator::enableLogs(bool input)
 {
-    log = input;
+    logs = input;
 }
 
 float Generator::roundToGrid(float f)
@@ -257,6 +258,7 @@ bool Generator::startFm(float &m_fStart, float &m_fStop, float &m_fStep, float &
     fFmStart = m_fStart;
     fFmStop = m_fStop;
     fFm = fFmStart;
+    fmCounter = 0;
 
 //    //  Поиск минимальной амплитуды в полосе
 //    float ampMin = ampMax;
@@ -357,4 +359,9 @@ float Generator::getAmp()
 float Generator::getFrequency()
 {
     return currentFrequency;
+}
+
+double Generator::log2(double x)
+{
+    return log10(x) / log10(2);
 }
