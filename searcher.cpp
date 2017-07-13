@@ -57,20 +57,20 @@ void Searcher::determineModel(QSerialPortInfo info, GeneratorModel &model)
 {
 
     G3000 g3000;
+    g3000.enableVerbose(true);
     G4409 g4409;
+    g4409.enableVerbose(true);
 
     bool success;
 
-    success = g3000.connect(info);
-    g3000.disconnect();
+//    success = g3000.isG3000(info);
 
-    if (success) {
-        model = Generator3000;
-        return;
-    }
+//    if (success) {
+//        model = Generator3000;
+//        return;
+//    }
 
-    success = g4409.connect(info);
-    g4409.disconnect();
+    success = g4409.isG4409(info);
 
     if (success) {
         model = Generator4409;

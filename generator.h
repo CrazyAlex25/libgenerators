@@ -6,9 +6,9 @@
 #include <QtSerialPort/QSerialPortInfo>
 #include <QtSerialPort/QSerialPort>
 #include <QTime>
-#include <QFile>
 #include <QVector>
 #include <QTimerEvent>
+#include <calibrator.h>
 
 
 typedef int FrequencyGrid;
@@ -109,15 +109,16 @@ signals:
     void newAmplitude(float amp_V);
     void newTFm(float t_s);
 
+public slots:
+    void errorSlot(QString err);
 protected:
 
     void timerEvent(QTimerEvent *event) Q_DECL_OVERRIDE;
-    void loadCalibrationAmp(QString filename);
-    double getAmpCorrection();
     float roundToGrid(float);
-     void  printMessage(QString message);
-     double log2(double x);
+    void  printMessage(QString message);
+    double log2(double x);
 
+    Calibrator calibrator;
 
     const int vid;
     const int pid;
@@ -134,7 +135,6 @@ protected:
     float currentFrequency;
 
     float currentAmp;
-    float ampMax;
 
     float fFmStart;
     float fFmStop;
@@ -153,8 +153,9 @@ protected:
 
     int levelControlMode;
 
-    QVector<double> ampCorrection;
-    float fAmpCorrectionStep;
+
+
+
 
     int connectionTimerId;
     int FmTimerId;

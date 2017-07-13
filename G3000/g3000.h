@@ -32,6 +32,7 @@ public:
     void GENERATORS_EXPORT setLevelControlMode(LevelControlMode mode) Q_DECL_OVERRIDE;
     LevelControlMode GENERATORS_EXPORT getLevelControlMode() Q_DECL_OVERRIDE;
 
+    bool GENERATORS_EXPORT isG3000(QSerialPortInfo &info);
 signals:
 //    void error(QString e);
 //    void disconnected();

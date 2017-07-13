@@ -18,10 +18,7 @@ G4409::G4409(QObject *parent)  :
     attenuationStep(0.25)
 {
 
-
-
-
-
+    calibrator.setBandBorder(25e6);
     attenuator1.id = 0;
     attenuator2.id = 1;
 
@@ -31,10 +28,12 @@ G4409::G4409(QObject *parent)  :
 
 G4409::~G4409()
 {
-    if (connected) {
-        turnOn(false);
+    if (serialPortInfo != nullptr)
         delete serialPortInfo;
-    }
+
+    if (connected)
+        turnOn(false);
+
 }
 
 
@@ -150,10 +149,8 @@ bool G4409::turnOn(bool i_on)
     else
         printMessage("Generator turned off");
 
-    float amp = currentAmp;
-    //setAmp(amp);
-    emit newAmplitude(amp);
 
+    on = i_on;
     return true;
 }
 
@@ -169,7 +166,7 @@ bool G4409::setAmp(float &m_amp)
     {
     case Amplitude:
     {
-         double maxAmp = 1; //getAmpCorrection();
+         double maxAmp =calibrator.getAmp(currentFrequency);
 
          if (m_amp > maxAmp)
              m_amp = maxAmp;
@@ -252,9 +249,7 @@ float G4409::getAttenuation()
 
 bool G4409::commute(quint8 key)
 {
-    //if (on)
-    if (true)
-
+    if (on) {
         switch (key)
         {
         case LowFrequency:
@@ -272,18 +267,18 @@ bool G4409::commute(quint8 key)
           printMessage("Wrong key for switcher");
 
         }
-    else
+    } else {
         switcher.value = 2;
-
+    }
 
 
     // Передаем его в генератор
     serialPort.write((char *)&switcher , sizeof( switcher));
 
-#ifdef QT_DEBUG
-    qDebug() << "Switcher buffer: ";
-        qDebug() << QString("%1").arg(switcher.value, 2, 16, QChar('0'));
-#endif
+    #ifdef QT_DEBUG
+        qDebug() << "Switcher buffer: ";
+            qDebug() << QString("%1").arg(switcher.value, 2, 16, QChar('0'));
+    #endif
 
 
     // Проверяем ответ
@@ -322,9 +317,11 @@ bool G4409:: setFrequency(float &m_fHz)
 
         // НАстройка синтезатора
       fSynthMHz = 100;
-      syntheziser.data[6] = 0x45;
-      syntheziser.data[7] = 0xDC;
 
+      if (on) {
+          syntheziser.data[6] = 0x45;
+          syntheziser.data[7] = 0xDC;
+      }
       // Настройка DDS
       int fDds = std::pow(2, 32) * (fMHz / 100);
       for (qint8 k = sizeof(dds.freq) - 1; k >= 0; --k  )
@@ -336,12 +333,14 @@ bool G4409:: setFrequency(float &m_fHz)
     } else {
         // Настройка синтезатора
         fSynthMHz = fMHz;
-        syntheziser.data[6] = 0x44;
-        syntheziser.data[7] = synthLevel;
 
+        if (on) {
+            syntheziser.data[6] = 0x44;
+            syntheziser.data[7] = synthLevel;
+        }
     }
 
-        quint16 k = log2(2);//6000 / fSynthMHz);
+        quint16 k = log2(6000 / fSynthMHz);
         quint16 n = 0x8F + (k<<4);
         syntheziser.data[5] = n;
 
@@ -395,7 +394,7 @@ bool G4409:: setFrequency(float &m_fHz)
     printMessage("Setted Frequency " + QString::number(fMHz) + "МHz");
 
     float amp = currentAmp;
-    //setAmp(amp);
+    setAmp(amp);
     emit newAmplitude(amp);
 
        return true;
@@ -420,6 +419,67 @@ void G4409::setFrequencyGrid(int i_frequencyGrid)
 FrequencyGrid G4409::getFrequencyGrid()
 {
     return frequencyGrid;
+}
+
+bool G4409::isG4409(QSerialPortInfo &info)
+{
+    //Обновляем информации о порте
+    serialPortInfo = new QSerialPortInfo(info);
+    serialPort.setPort(*serialPortInfo);
+
+    bool ok = serialPort.open(QIODevice::ReadWrite);
+    if (!ok) {
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        QString message = "Не удалось получить доступ к последовательному порту. " + serialPort.errorString();
+        emit error(message);
+        printMessage(message);
+        return false;
+    }
+
+
+    ok = serialPort.setBaudRate(QSerialPort::Baud115200);
+    if (!ok)
+    {
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        emit error("Не удалось установить скорость передачи данных");
+        return false;
+    }
+
+    ok = serialPort.setDataBits(QSerialPort::Data8);
+
+    if (!ok)
+    {
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        emit error("Не удалось установить информационный разряд");
+        return false;
+    }
+
+
+    ok = serialPort.setParity(QSerialPort::NoParity);
+
+    if (!ok)
+    {
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        emit error("Не удалось установить паритет");
+        return false;
+    }
+
+    bool success = commute(LowFrequency);
+
+    serialPort.close();
+    delete serialPortInfo;
+    serialPortInfo = NULL;
+    return  success;
+
+
 }
 
 bool G4409::connect(QSerialPortInfo &info)
@@ -474,13 +534,12 @@ bool G4409::connect(QSerialPortInfo &info)
 
 
     connected = commute(LowFrequency);
-    printMessage( "Generator has been connected");
 
-
-   loadCalibrationAmp(QString(":/calibration4409.txt"));
-
-   printMessage("Amp calibration loaded");
-
+    if (connected) {
+        printMessage( "Generator has been connected");
+        calibrator.load(QString(":/G4409/calibration.txt"));
+        printMessage("Amp calibration loaded");
+    }
 
      return connected;
 }

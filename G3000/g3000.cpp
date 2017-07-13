@@ -16,6 +16,8 @@ G3000::G3000(QObject *parent) :
     attenuationStep(0.5)
 {
 
+    calibrator.setBandBorder(275e6);
+
     setFrequencyGrid(Grid10);
     syntheziser1.data[7] = 36;
     //commutator = 0;
@@ -31,10 +33,69 @@ G3000::G3000(QObject *parent) :
 
 G3000::~G3000()
 {
-    if (connected) {
-        turnOn(false);
+    if (serialPortInfo != nullptr)
         delete serialPortInfo;
+
+    if (connected)
+        turnOn(false);
+
+}
+
+bool G3000::isG3000(QSerialPortInfo &info)
+{
+    //Обновляем информации о порте
+    serialPortInfo = new QSerialPortInfo(info);
+    serialPort.setPort(*serialPortInfo);
+
+    bool ok = serialPort.open(QIODevice::ReadWrite);
+    if (!ok) {
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        emit error("Не удалось получить доступ к последовательному порту. " + serialPort.errorString());
+        return false;
     }
+
+    ok = serialPort.setBaudRate(QSerialPort::Baud115200);
+    if (!ok)
+    {
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        emit error("Не удалось установить скорость передачи данных");
+        return false;
+    }
+
+    ok = serialPort.setDataBits(QSerialPort::Data8);
+
+    if (!ok)
+    {
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        emit error("Не удалось установить информационный разряд");
+        return false;
+    }
+
+
+    ok = serialPort.setParity(QSerialPort::NoParity);
+
+    if (!ok)
+    {
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        emit error("Не удалось установить паритет");
+        return false;
+    }
+
+    bool success = commute(1);
+    serialPort.close();
+    delete serialPortInfo;
+    serialPortInfo = NULL;
+    return success;
+
+
 }
 
 bool G3000::connect(QSerialPortInfo &info)
@@ -89,13 +150,12 @@ bool G3000::connect(QSerialPortInfo &info)
 
 
     connected = commute(1);
-    printMessage( "Generator has been connected");
 
-
-    loadCalibrationAmp(":/calibration3000.txt");
-
-    printMessage("Amp calibration loaded");
-
+    if (connected ) {
+        printMessage( "Generator has been connected");
+        calibrator.load(":/G3000/calibration.txt");
+        printMessage("Amp calibration loaded");
+    }
 
      return connected;
 }
@@ -179,7 +239,7 @@ bool G3000::setAmp(float &amp)
     {
     case Amplitude:
     {
-         double maxAmp = getAmpCorrection();
+         double maxAmp = calibrator.getAmp(currentFrequency);
 
          if (amp > maxAmp)
              amp = maxAmp;

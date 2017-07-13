@@ -29,6 +29,7 @@ public:
     LevelControlMode GENERATORS_EXPORT getLevelControlMode() Q_DECL_OVERRIDE;
 
     void GENERATORS_EXPORT setSynthLevel(int level);
+    bool GENERATORS_EXPORT isG4409(QSerialPortInfo &info);
 
     // Состояния коммутатора
     enum eSwitcherState{

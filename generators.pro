@@ -17,7 +17,8 @@ SOURCES += \
         G3000/g3000.cpp \
     generator.cpp \
     G4409/g4409.cpp \
-    searcher.cpp
+    searcher.cpp \
+    calibrator.cpp
 
 HEADERS +=\
     G3000/g3000.h \
@@ -26,7 +27,8 @@ HEADERS +=\
     generators_global.h \
     G4409/commands4409.h \
     G3000/commands3000.h \
-    searcher.h
+    searcher.h \
+    calibrator.h
 
 VERSION = 1.1.2
 

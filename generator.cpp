@@ -1,9 +1,9 @@
 #include "generator.h"
 #include <QDir>
-#include <QTextStream>
 #include <QDebug>
 
 Generator::Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFreq, float i_tFmMin, float i_tFmMax, float i_fFmBandStop, QObject *parent) : QObject(parent),
+    calibrator(),
     vid(i_vid),
     pid(i_pid),
     on(false),
@@ -25,11 +25,12 @@ Generator::Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFr
     tFmMin(i_tFmMin),
     tFmMax(i_tFmMax),
     levelControlMode(Amplitude),
-    fAmpCorrectionStep(NAN),
     FmTimerId(-1),
     serialPortInfo(NULL),
     logFileName(QDir::currentPath()+"/log.txt")
 {
+
+    QObject::connect(&calibrator, &Calibrator::error, this, &Generator::errorSlot);
 
     Q_INIT_RESOURCE(amp);
     QFile logFile(logFileName);
@@ -38,6 +39,7 @@ Generator::Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFr
         logStream << QDateTime::currentDateTime().toString() << "\n";
     }
     logFile.close();
+
 
 }
 
@@ -295,61 +297,6 @@ void Generator :: stopFm()
 
 }
 
-void Generator:: loadCalibrationAmp(QString fileName)
-{
-
-    QFile file(fileName);
-    if (!file.open(QIODevice::ReadOnly))
-        emit error("Не найден файл грубой калибровки");
-
-    QTextStream in(&file);
-    float f1;
-    float f2;
-    double P_dBm;
-    double amp_V;
-    in >> f1;
-    in >> P_dBm;
-    amp_V = pow(10, ((P_dBm + 30 + 16.99)/ 20) - 3) * sqrt(2);
-    ampCorrection.push_back(amp_V);
-
-    if (amp_V > ampMax)
-        ampMax = amp_V;
-
-    in >> f2;
-    in >> P_dBm;
-    amp_V = pow(10, ((P_dBm + 30 + 16.99)/ 20) - 3) * sqrt(2);
-    ampCorrection.push_back(amp_V);
-    fAmpCorrectionStep = (f2 - f1) * 1e6;
-
-
-    if (amp_V > ampMax)
-        ampMax = amp_V;
-
-    while (!in.atEnd())
-    {
-        in >> f1;
-        in >> P_dBm;
-        amp_V = pow(10, ((P_dBm + 30 + 16.99)/ 20) - 3) * sqrt(2);
-        ampCorrection.push_back(amp_V);
-
-
-        if (amp_V > ampMax)
-            ampMax = amp_V;
-    }
-}
-
-
-double Generator::getAmpCorrection()
-{
-    if (std::isnan(currentFrequency)) {
-        return ampCorrection[1];
-    } else {
-        int ind = round(currentFrequency / fAmpCorrectionStep);
-        return ampCorrection[ind];
-    }
-
-}
-
 
 float Generator::getAmp()
 {
@@ -364,4 +311,9 @@ float Generator::getFrequency()
 double Generator::log2(double x)
 {
     return log10(x) / log10(2);
+}
+
+void Generator::errorSlot(QString err)
+{
+    emit error(err);
 }
