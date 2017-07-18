@@ -92,9 +92,9 @@ double Calibrator::getAmp(float f)
 
     int ind;
     if ( f < bandBorder) {
-        ind = round(f / stepLow);
+        ind = round(f / stepLow)- 1 ;
     } else {
-        ind = round(bandBorder / stepLow) + round((f - bandBorder) / stepHigh);
+        ind = round(bandBorder / stepLow) + round((f - bandBorder) / stepHigh) - 1;
     }
 
     return ampCorrection[ind];

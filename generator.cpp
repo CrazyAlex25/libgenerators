@@ -89,10 +89,10 @@ void Generator::timerEvent(QTimerEvent * event)
 
         switch (fmMode) {
         case UpChirp:
-            fFm = fFmStep;
+            fFm = fFmStart + fmCounter * fFmStep;
 
             if ((fFm >= fFmStop))
-                fFm = fFmStart + fmCounter * fFmStep;
+                fFm = fFmStart;
             break;
 
         case DownChirp:
@@ -106,6 +106,7 @@ void Generator::timerEvent(QTimerEvent * event)
             break;
         }
 
+        ++fmCounter;
         QTime tFmStop = QTime::currentTime();
         float tFm =  tFmStart.msecsTo(tFmStop) * 1e-3;
         tFmStart = tFmStop;
