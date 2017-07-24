@@ -11,13 +11,13 @@ G4409::G4409(QObject *parent)  :
                                           1000, // tFmMax
                                           8e9,  //fFmBandStop
                                           parent),
-    synthLevel(SynthLevelP5),
     referenceFrequency(UnknownRefFreq),
     attenuationMax(63.5),
     attenuationMin(0),
     attenuationStep(0.25)
 {
 
+    setSynthLevel(SynthLevelP5);
     calibrator.setBandBorder(25e6);
     attenuator1.id = 0;
     attenuator2.id = 1;
