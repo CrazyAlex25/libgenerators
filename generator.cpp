@@ -90,23 +90,25 @@ void Generator::timerEvent(QTimerEvent * event)
         switch (fmMode) {
         case UpChirp:
             fFm = fFmStart + fmCounter * fFmStep;
+            ++fmCounter;
 
             if ((fFm >= fFmStop))
-                fFm = fFmStart;
+                   fmCounter = 0;
             break;
 
         case DownChirp:
             fFm = fFmStart - fmCounter * fFmStep;
+            ++fmCounter;
 
             if ((fFm <= fFmStart))
-                fFm = fFmStop;
+                fmCounter = 0;
             break;
         default:
             emit error ("Выбран неправильный вид ЧМ");
             break;
         }
 
-        ++fmCounter;
+
         QTime tFmStop = QTime::currentTime();
         float tFm =  tFmStart.msecsTo(tFmStop) * 1e-3;
         tFmStart = tFmStop;
