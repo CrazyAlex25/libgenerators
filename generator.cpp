@@ -289,8 +289,10 @@ bool Generator::startFm(float &m_fStart, float &m_fStop, float &m_fStep, float &
 
 void Generator :: stopFm()
 {
-    if (FmTimerId != -1)
+    if (FmTimerId != -1) {
         killTimer(FmTimerId);
+        FmTimerId = -1;
+    }
 
     FmTimerId = -1;
     fFmStart = NAN;
