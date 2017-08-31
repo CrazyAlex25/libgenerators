@@ -9,7 +9,6 @@
 class  GENERATORS_EXPORT  G4409 : public Generator
 {
     Q_OBJECT
-    friend class Searcher;
 public:
     explicit G4409(QObject * parent = 0);
     ~G4409();
@@ -23,7 +22,6 @@ public:
     FrequencyGrid GENERATORS_EXPORT getFrequencyGrid() Q_DECL_OVERRIDE;
 
     bool GENERATORS_EXPORT connect(QSerialPortInfo &) Q_DECL_OVERRIDE;
-    void GENERATORS_EXPORT disconnect() Q_DECL_OVERRIDE;
 
     void GENERATORS_EXPORT setLevelControlMode(LevelControlMode mode) Q_DECL_OVERRIDE;
     LevelControlMode GENERATORS_EXPORT getLevelControlMode() Q_DECL_OVERRIDE;

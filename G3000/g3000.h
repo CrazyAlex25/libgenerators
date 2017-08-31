@@ -13,9 +13,9 @@
 class GENERATORS_EXPORT G3000 : public Generator
 {
     Q_OBJECT
-    friend class Searcher;
 public:
     explicit G3000(QObject * parent = 0);
+    explicit G3000(int i_vid, int i_pid, QObject *parent = 0);
     ~G3000();
 
     bool GENERATORS_EXPORT turnOn(bool i_on) Q_DECL_OVERRIDE;
@@ -27,7 +27,6 @@ public:
     FrequencyGrid GENERATORS_EXPORT getFrequencyGrid() Q_DECL_OVERRIDE;
 
     bool GENERATORS_EXPORT connect(QSerialPortInfo & info) Q_DECL_OVERRIDE;
-    void GENERATORS_EXPORT disconnect() Q_DECL_OVERRIDE;
 
     void GENERATORS_EXPORT setLevelControlMode(LevelControlMode mode) Q_DECL_OVERRIDE;
     LevelControlMode GENERATORS_EXPORT getLevelControlMode() Q_DECL_OVERRIDE;
@@ -40,14 +39,17 @@ signals:
 //    void newAmplitude(float amp_V);
 //    void newTFm(float t_s);
 
-private:
+protected:
 
+    void initialize();
     bool setAttenuation(float &attenuation);
     float getAttenuation();
 
     bool commute(quint8);
     bool checkResponse();
     float getReferenceFrequency(int refFreq);
+
+private:
 
     // Определение опорных частот
     enum eReferenceFrequency{

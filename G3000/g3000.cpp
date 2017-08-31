@@ -9,12 +9,40 @@ G3000::G3000(QObject *parent) :
                                           0.020, // tFmMin
                                           1000, // tFmMax
                                           275e6, //fFmBandStop
-                                          parent),
-    referenceFrequency(UnknownRefFreq),
-    attenuationMax(63),
-    attenuationMin(0),
-    attenuationStep(0.5)
+                                          parent)
 {
+    initialize();
+}
+
+G3000::G3000(int i_vid, int i_pid, QObject *parent) :
+    Generator(i_vid, //vid
+                                          i_pid, //pid
+                                          1e6, // lowestFreq
+                                          3e9, // highestFreq
+                                          0.020, // tFmMin
+                                          1000, // tFmMax
+                                          275e6, //fFmBandStop
+                                          parent)
+{
+    initialize();
+}
+
+G3000::~G3000()
+{
+    if (serialPortInfo != nullptr)
+        delete serialPortInfo;
+
+    if (connected)
+        turnOn(false);
+
+}
+
+void G3000::initialize()
+{
+    referenceFrequency = UnknownRefFreq;
+    attenuationMax = 63;
+    attenuationMin = 0;
+    attenuationStep = 0.5;
 
     calibrator.setBandBorder(275e6);
 
@@ -31,16 +59,6 @@ G3000::G3000(QObject *parent) :
     connectionTimerId = startTimer(500);
 }
 
-G3000::~G3000()
-{
-    if (serialPortInfo != nullptr)
-        delete serialPortInfo;
-
-    if (connected)
-        turnOn(false);
-
-}
-
 bool G3000::isG3000(QSerialPortInfo &info)
 {
     bool success = Generator::connect(info);
@@ -51,7 +69,7 @@ bool G3000::isG3000(QSerialPortInfo &info)
     serialPort.close();
     delete serialPortInfo;
     serialPortInfo = NULL;
-    return success;
+    return success && (info.vendorIdentifier() == vid) && (info.productIdentifier() == pid);
 
 
 }
@@ -71,11 +89,6 @@ bool G3000::connect(QSerialPortInfo &info)
     }
 
      return connected;
-}
-
-void G3000::disconnect()
-{
-    serialPort.close();
 }
 
 /* Включение/выключение генератора*/

@@ -30,7 +30,6 @@ typedef int FmMode;
 class GENERATORS_EXPORT Generator : public QObject
 {
   Q_OBJECT
-    friend class Searcher;
 public:
     explicit Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFreq, float i_tFmMin, float i_tFmMax, float i_fFmBandStop, QObject * parent = 0);
 
@@ -63,7 +62,7 @@ public:
     //Установить связь с заданным устройством
     virtual bool GENERATORS_EXPORT connect(QSerialPortInfo &info);
     // Закрыть устройство
-    virtual void GENERATORS_EXPORT disconnect()  = 0;
+    void GENERATORS_EXPORT disconnect() ;
 
     // Получить список доступных устройств
     static QList<QSerialPortInfo> GENERATORS_EXPORT getAvailablePorts();
@@ -79,6 +78,9 @@ public:
     virtual void GENERATORS_EXPORT setLevelControlMode(LevelControlMode mode) = 0;
     // Возврат текущего режима управления сигналом генератора
     virtual LevelControlMode GENERATORS_EXPORT getLevelControlMode() = 0;
+
+    int GENERATORS_EXPORT getPid();
+    int GENERATORS_EXPORT getVid();
 
     //возможные сетки частот генератора
     enum eFrequencyGrid {

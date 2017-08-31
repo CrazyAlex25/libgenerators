@@ -376,3 +376,18 @@ void Generator::errorSlot(QString err)
 {
     emit error(err);
 }
+
+void Generator::disconnect()
+{
+    serialPort.close();
+}
+
+int Generator::getPid()
+{
+    return pid;
+}
+
+int Generator::getVid()
+{
+    return vid;
+}

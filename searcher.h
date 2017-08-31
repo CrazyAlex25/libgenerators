@@ -3,6 +3,7 @@
 
 #include "G3000/g3000.h"
 #include "G4409/g4409.h"
+#include "getu.h"
 
 typedef int GeneratorModel;
 
@@ -18,6 +19,7 @@ public:
     enum eModels{
         Generator3000,
         Generator4409,
+        GeterodinU,
         None
     };
 

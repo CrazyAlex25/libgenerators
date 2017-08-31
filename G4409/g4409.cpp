@@ -433,7 +433,7 @@ bool G4409::isG4409(QSerialPortInfo &info)
     serialPort.close();
     delete serialPortInfo;
     serialPortInfo = NULL;
-    return  success;
+    return success && (info.vendorIdentifier() == vid) && (info.productIdentifier() == pid);
 
 
 }
@@ -454,13 +454,6 @@ bool G4409::connect(QSerialPortInfo &info)
 
      return connected;
 }
-
-void G4409::disconnect()
-{
-    serialPort.close();
-    this->thread()->sleep(1);
-}
-
 
 void G4409::writeHead()
 {

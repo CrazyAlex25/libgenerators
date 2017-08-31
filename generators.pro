@@ -18,7 +18,8 @@ SOURCES += \
     generator.cpp \
     G4409/g4409.cpp \
     searcher.cpp \
-    calibrator.cpp
+    calibrator.cpp \
+    getu.cpp
 
 HEADERS +=\
     G3000/g3000.h \
@@ -28,9 +29,10 @@ HEADERS +=\
     G4409/commands4409.h \
     G3000/commands3000.h \
     searcher.h \
-    calibrator.h
+    calibrator.h \
+    getu.h
 
-VERSION = 1.1.4
+VERSION = 1.2.0
 
 unix {
 
