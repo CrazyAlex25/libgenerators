@@ -1,8 +1,8 @@
 #include "getu.h"
 
 GetU::GetU(QObject *parent) : G3000(0x10c4, 0xea60, parent),
-    poolPeriod(4000),
-    timeOutTimerId(-1)
+    timeOutTimerId(-1),
+    poolPeriod(4000)
 {
 
 }
