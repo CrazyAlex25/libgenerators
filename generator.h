@@ -9,6 +9,7 @@
 #include <QVector>
 #include <QTimerEvent>
 #include <calibrator.h>
+#include <cmath>
 
 
 typedef int FrequencyGrid;
@@ -60,7 +61,7 @@ public:
 
 
     //Установить связь с заданным устройством
-    virtual bool GENERATORS_EXPORT connect(QSerialPortInfo &info) = 0;
+    virtual bool GENERATORS_EXPORT connect(QSerialPortInfo &info);
     // Закрыть устройство
     virtual void GENERATORS_EXPORT disconnect()  = 0;
 

@@ -63,12 +63,12 @@ void Searcher::determineModel(QSerialPortInfo info, GeneratorModel &model)
 
     bool success;
 
-//    success = g3000.isG3000(info);
+    success = g3000.isG3000(info);
 
-//    if (success) {
-//        model = Generator3000;
-//        return;
-//    }
+    if (success) {
+        model = Generator3000;
+        return;
+    }
 
     success = g4409.isG4409(info);
 

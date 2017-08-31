@@ -43,53 +43,11 @@ G3000::~G3000()
 
 bool G3000::isG3000(QSerialPortInfo &info)
 {
-    //Обновляем информации о порте
-    serialPortInfo = new QSerialPortInfo(info);
-    serialPort.setPort(*serialPortInfo);
+    bool success = Generator::connect(info);
+    if (!success)
+        return success;
 
-    bool ok = serialPort.open(QIODevice::ReadWrite);
-    if (!ok) {
-        serialPort.close();
-        delete serialPortInfo;
-        serialPortInfo = NULL;
-        emit error("Не удалось получить доступ к последовательному порту. " + serialPort.errorString());
-        return false;
-    }
-
-    ok = serialPort.setBaudRate(QSerialPort::Baud115200);
-    if (!ok)
-    {
-        serialPort.close();
-        delete serialPortInfo;
-        serialPortInfo = NULL;
-        emit error("Не удалось установить скорость передачи данных");
-        return false;
-    }
-
-    ok = serialPort.setDataBits(QSerialPort::Data8);
-
-    if (!ok)
-    {
-        serialPort.close();
-        delete serialPortInfo;
-        serialPortInfo = NULL;
-        emit error("Не удалось установить информационный разряд");
-        return false;
-    }
-
-
-    ok = serialPort.setParity(QSerialPort::NoParity);
-
-    if (!ok)
-    {
-        serialPort.close();
-        delete serialPortInfo;
-        serialPortInfo = NULL;
-        emit error("Не удалось установить паритет");
-        return false;
-    }
-
-    bool success = commute(1);
+    success = commute(1);
     serialPort.close();
     delete serialPortInfo;
     serialPortInfo = NULL;
@@ -100,54 +58,9 @@ bool G3000::isG3000(QSerialPortInfo &info)
 
 bool G3000::connect(QSerialPortInfo &info)
 {
-    //Обновляем информации о порте
-    serialPortInfo = new QSerialPortInfo(info);
-    serialPort.setPort(*serialPortInfo);
-
-    bool ok = serialPort.open(QIODevice::ReadWrite);
-    if (!ok) {
-        serialPort.close();
-        delete serialPortInfo;
-        serialPortInfo = NULL;
-        emit error("Не удалось получить доступ к последовательному порту. " + serialPort.errorString());
-        return false;
-    }
-
-
-
-    ok = serialPort.setBaudRate(QSerialPort::Baud115200);
-    if (!ok)
-    {
-        serialPort.close();
-        delete serialPortInfo;
-        serialPortInfo = NULL;
-        emit error("Не удалось установить скорость передачи данных");
-        return false;
-    }
-
-    ok = serialPort.setDataBits(QSerialPort::Data8);
-
-    if (!ok)
-    {
-        serialPort.close();
-        delete serialPortInfo;
-        serialPortInfo = NULL;
-        emit error("Не удалось установить информационный разряд");
-        return false;
-    }
-
-
-    ok = serialPort.setParity(QSerialPort::NoParity);
-
-    if (!ok)
-    {
-        serialPort.close();
-        delete serialPortInfo;
-        serialPortInfo = NULL;
-        emit error("Не удалось установить паритет");
-        return false;
-    }
-
+    bool success = Generator::connect(info);
+    if (!success)
+        return success;
 
     connected = commute(1);
 

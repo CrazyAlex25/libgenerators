@@ -59,6 +59,60 @@ void Generator::printMessage(QString message)
 
 }
 
+bool Generator::connect(QSerialPortInfo &info)
+{
+    //Обновляем информации о порте
+    serialPortInfo = new QSerialPortInfo(info);
+    serialPort.setPort(*serialPortInfo);
+
+    bool ok = serialPort.open(QIODevice::ReadWrite);
+    if (!ok) {
+        QString message = "Не удалось получить доступ к последовательному порту. " + serialPort.errorString();
+        printMessage(message);
+        emit error(message);
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        return false;
+    }
+
+
+    ok = serialPort.setBaudRate(QSerialPort::Baud115200);
+    if (!ok)
+    {
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        emit error("Не удалось установить скорость передачи данных");
+        return false;
+    }
+
+    ok = serialPort.setDataBits(QSerialPort::Data8);
+
+    if (!ok)
+    {
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        emit error("Не удалось установить информационный разряд");
+        return false;
+    }
+
+
+    ok = serialPort.setParity(QSerialPort::NoParity);
+
+    if (!ok)
+    {
+        serialPort.close();
+        delete serialPortInfo;
+        serialPortInfo = NULL;
+        emit error("Не удалось установить паритет");
+        return false;
+    }
+
+    return true;
+}
+
 void Generator::timerEvent(QTimerEvent * event)
 {
 
