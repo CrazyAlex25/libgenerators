@@ -20,6 +20,7 @@ public:
 private:
     int timeOutTimerId;
     int poolPeriod;
+    float freq;
 
 };
 

@@ -2,7 +2,8 @@
 
 GetU::GetU(QObject *parent) : G3000(0x10c4, 0xea60, parent),
     timeOutTimerId(-1),
-    poolPeriod(4000)
+    poolPeriod(4000),
+    freq(NAN)
 {
 
 }
@@ -12,7 +13,7 @@ void GetU::timerEvent(QTimerEvent *event)
 {
     if(timeOutTimerId == event->timerId()) {
         killTimer(timeOutTimerId);
-        G3000::turnOn(on);
+        G3000::setFrequency(freq);
     }
 }
 
@@ -33,7 +34,6 @@ bool GetU::setAmp(float &m_amp)
         killTimer(timeOutTimerId);
 
     timeOutTimerId = startTimer(poolPeriod);
-
     return G3000::setAmp(m_amp);
 }
 
@@ -44,6 +44,7 @@ bool GetU::setFrequency(float &m_f)
 
     timeOutTimerId = startTimer(poolPeriod);
 
+    freq = m_f;
     return G3000::setFrequency(m_f);
 }
 
