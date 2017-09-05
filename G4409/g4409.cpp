@@ -453,10 +453,14 @@ bool G4409::connect(QSerialPortInfo &info)
     connected = commute(LowFrequency);
 
     if (connected) {
-        printMessage( "Generator has been connected");
+        printMessage( "Генератор успешно подключен");
         calibrator.load(QString(":/G4409/calibration.txt"));
-        printMessage("Amp calibration loaded");
+        printMessage("Калибровочная характеристика загружена");
     }
+
+    success = server.start();
+    if (success)
+        printMessage("Tcp сервер, слущающий команды, запущен");
 
      return connected;
 }

@@ -3,7 +3,8 @@
 #include <QDebug>
 
 Generator::Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFreq, float i_tFmMin, float i_tFmMax, float i_fFmBandStop, QObject *parent) : QObject(parent),
-    calibrator(),
+    calibrator(this),
+    server(50600, this),
     vid(i_vid),
     pid(i_pid),
     on(false),
@@ -43,6 +44,18 @@ Generator::Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFr
     }
 
     ++objectCounter;
+
+    QObject::connect(&server, &Server::connected, this, &Generator::serverConnected);
+    QObject::connect(&server, &Server::disconnected, this, &Generator::serverDisconnected);
+    QObject::connect(&server, &Server::error, this, &Generator::errorSlot );
+    QObject::connect(&server, &Server::error, this, &Generator::printMessage );
+    QObject::connect(&server, &Server::turnOn, this, &Generator::stateChanged);
+    QObject::connect(&server, &Server::setAmp, this, &Generator::amplitudeChanged);
+    QObject::connect(&server, &Server::setFrequency, this, &Generator::frequencyChanged);
+    QObject::connect(&server, &Server::startFm, this, &Generator::startFm);
+    QObject::connect(&server, &Server::stopFm, this, &Generator::stopFm );
+    QObject::connect(&server, &Server::setFmMode, this, &Generator::setFmMode );
+
 
 
 }
@@ -118,7 +131,7 @@ bool Generator::connect(QSerialPortInfo &info)
         return false;
     }
 
-    printMessage("Последовательный порт открыт."+ serialPort.errorString());
+    printMessage("Последовательный порт открыт.");
     return true;
 }
 
@@ -149,41 +162,12 @@ void Generator::timerEvent(QTimerEvent * event)
 
     // Переключение качания частоты
     if  (event->timerId() == FmTimerId) {
-
-        switch (fmMode) {
-        case UpChirp:
-            fFm = fFmStart + fmCounter * fFmStep;
-            ++fmCounter;
-
-            if ((fFm >= fFmStop))
-                   fmCounter = 0;
-            break;
-
-        case DownChirp:
-            fFm = fFmStart - fmCounter * fFmStep;
-            ++fmCounter;
-
-            if ((fFm <= fFmStart))
-                fmCounter = 0;
-            break;
-        default:
-            emit error ("Выбран неправильный вид ЧМ");
-            break;
-        }
-
-
-        QTime tFmStop = QTime::currentTime();
-        float tFm =  tFmStart.msecsTo(tFmStop) * 1e-3;
-        tFmStart = tFmStop;
-        emit newTFm(tFm);
-        setFrequency(fFm);
-
-        printMessage( "Setted Frequency" + QString::number(fFm) + "Hz");
-
-        emit newFrequency(fFm);
+        fmIteration();
     }
 
 }
+
+
 
 void Generator::enableVerbose(bool input)
 {
@@ -350,6 +334,42 @@ bool Generator::startFm(float &m_fStart, float &m_fStop, float &m_fStep, float &
     return true;
 }
 
+
+void Generator::fmIteration()
+{
+    switch (fmMode) {
+    case UpChirp:
+        fFm = fFmStart + fmCounter * fFmStep;
+        ++fmCounter;
+
+        if ((fFm >= fFmStop))
+               fmCounter = 0;
+        break;
+
+    case DownChirp:
+        fFm = fFmStart - fmCounter * fFmStep;
+        ++fmCounter;
+
+        if ((fFm <= fFmStart))
+            fmCounter = 0;
+        break;
+    default:
+        emit error ("Выбран неправильный вид ЧМ");
+        break;
+    }
+
+
+    QTime tFmStop = QTime::currentTime();
+    float tFm =  tFmStart.msecsTo(tFmStop) * 1e-3;
+    tFmStart = tFmStop;
+    emit newTFm(tFm);
+    setFrequency(fFm);
+
+    printMessage( "Setted Frequency" + QString::number(fFm) + "Hz");
+
+    emit newFrequency(fFm);
+}
+
 void Generator :: stopFm()
 {
     if (FmTimerId != -1) {
@@ -399,4 +419,38 @@ int Generator::getPid()
 int Generator::getVid()
 {
     return vid;
+}
+
+void  Generator::setTcpPort(int port)
+{
+    printMessage("Изменен tcp порт: " + QString::number(port));
+    server.start(port);
+}
+
+void Generator::amplitudeChanged(float amp)
+{
+    setAmp(amp);
+    emit newAmplitude(amp);
+}
+
+void Generator::frequencyChanged(float freq)
+{
+    setFrequency(freq);
+    emit newFrequency(freq);
+}
+
+void Generator::stateChanged(bool on)
+{
+    turnOn(on);
+    emit newState(on);
+}
+
+void Generator::serverConnected()
+{
+    emit netControl(on);
+}
+
+void Generator::serverDisconnected()
+{
+    emit netControl(false);
 }

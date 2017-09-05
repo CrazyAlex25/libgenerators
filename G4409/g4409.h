@@ -13,11 +13,12 @@ public:
     explicit G4409(QObject * parent = 0);
     ~G4409();
 
+public slots:
     bool GENERATORS_EXPORT turnOn(bool i_on) Q_DECL_OVERRIDE;
     bool GENERATORS_EXPORT setAmp(float &m_amp) Q_DECL_OVERRIDE;
-
     bool GENERATORS_EXPORT setFrequency(float &m_f) Q_DECL_OVERRIDE;
 
+public:
     void GENERATORS_EXPORT setFrequencyGrid(int i_frequencyGrid) Q_DECL_OVERRIDE;
     FrequencyGrid GENERATORS_EXPORT getFrequencyGrid() Q_DECL_OVERRIDE;
 

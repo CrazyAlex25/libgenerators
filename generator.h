@@ -9,6 +9,7 @@
 #include <QVector>
 #include <QTimerEvent>
 #include <calibrator.h>
+#include <server.h>
 #include <cmath>
 
 
@@ -33,18 +34,16 @@ class GENERATORS_EXPORT Generator : public QObject
 public:
     explicit Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFreq, float i_tFmMin, float i_tFmMax, float i_fFmBandStop, QObject * parent = 0);
 
+public slots:
+    void errorSlot(QString err);
     //Включение генератора
     virtual bool GENERATORS_EXPORT turnOn(bool i_on) = 0;
 
     // Установка амплитуды
     virtual bool GENERATORS_EXPORT setAmp(float &m_amp) = 0;
-    // Возврат текущего значения амплитуды
-    float GENERATORS_EXPORT getAmp();
 
     // Установка частоты
     virtual bool GENERATORS_EXPORT setFrequency(float &m_f) = 0;
-    // Возврат текущего значения частоты
-    float GENERATORS_EXPORT getFrequency();
 
     // Запуск ЧМ
     bool GENERATORS_EXPORT startFm(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep);
@@ -52,6 +51,13 @@ public:
     void GENERATORS_EXPORT stopFm();
     // Выбор режима ЧМ
     void GENERATORS_EXPORT setFmMode(FmMode mode);
+
+public:
+    // Возврат текущего значения амплитуды
+    float GENERATORS_EXPORT getAmp();
+
+    // Возврат текущего значения частоты
+    float GENERATORS_EXPORT getFrequency();
 
     // Установка шага частотной сетки
     virtual void GENERATORS_EXPORT setFrequencyGrid(int i_frequencyGrid) = 0;
@@ -82,6 +88,9 @@ public:
     int GENERATORS_EXPORT getPid();
     int GENERATORS_EXPORT getVid();
 
+    //Установка номера порта, по которому генератор будет слушать входящие комадны.
+    void GENERATORS_EXPORT setTcpPort(int );
+
     //возможные сетки частот генератора
     enum eFrequencyGrid {
         Grid1, // 1 Кгц
@@ -110,18 +119,31 @@ signals:
     void disconnected();
     void newFrequency(float freq_Hz);
     void newAmplitude(float amp_V);
+    void newState(bool on);
+    void netControl(bool on);
+    void turnedOn(bool on);
     void newTFm(float t_s);
 
-public slots:
-    void errorSlot(QString err);
+
+
+protected slots:
+    void  printMessage(QString message);
+    void amplitudeChanged(float amp);
+    void frequencyChanged(float freq);
+    void stateChanged(bool on);
+    void serverConnected();
+    void serverDisconnected();
+
 protected:
 
     void timerEvent(QTimerEvent *event) Q_DECL_OVERRIDE;
+    void fmIteration();
+
     float roundToGrid(float);
-    void  printMessage(QString message);
     double log2(double x);
 
     Calibrator calibrator;
+    Server server;
 
     static int objectCounter;
     const int vid;

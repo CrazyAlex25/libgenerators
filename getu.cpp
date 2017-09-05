@@ -11,8 +11,18 @@ GetU::GetU(QObject *parent) : G3000(0x10c4, 0xea60, parent),
 
 void GetU::timerEvent(QTimerEvent *event)
 {
-    if(timeOutTimerId == event->timerId()) {
+    if (FmTimerId == event->timerId()) {
+        fmIteration();
+        return;
+    }
+
+    if (FmTimerId != -1) {
+        return;
+    }
+
+    if((timeOutTimerId == event->timerId()) && (!isnan(freq))) {
         killTimer(timeOutTimerId);
+        timeOutTimerId = -1;
         G3000::setFrequency(freq);
     }
 }

@@ -11,10 +11,13 @@ public:
     explicit GetU(QObject * parent = 0);
 
     void timerEvent(QTimerEvent *event) Q_DECL_OVERRIDE;
+
+public slots:
     bool GENERATORS_EXPORT turnOn(bool i_on) Q_DECL_OVERRIDE;
     bool GENERATORS_EXPORT setAmp(float &m_amp) Q_DECL_OVERRIDE;
     bool GENERATORS_EXPORT setFrequency(float &m_f) Q_DECL_OVERRIDE;
 
+public:
     bool GENERATORS_EXPORT isGetU(QSerialPortInfo &info);
 
 private:
