@@ -33,15 +33,21 @@ Generator::Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFr
     QObject::connect(&calibrator, &Calibrator::error, this, &Generator::errorSlot);
 
     Q_INIT_RESOURCE(amp);
-    QFile logFile(logFileName);
-    if (logFile.open(QFile::WriteOnly)) {
-        QTextStream logStream(&logFile);
-        logStream << QDateTime::currentDateTime().toString() << "\n";
+    if(objectCounter == 0) {
+        QFile logFile(logFileName);
+        if (logFile.open(QFile::WriteOnly)) {
+            QTextStream logStream(&logFile);
+            logStream << QDateTime::currentDateTime().toString() << "\n";
+        }
+        logFile.close();
     }
-    logFile.close();
+
+    ++objectCounter;
 
 
 }
+
+int Generator::objectCounter = 0;
 
 void Generator::printMessage(QString message)
 {
@@ -75,7 +81,9 @@ bool Generator::connect(QSerialPortInfo &info)
         serialPortInfo = NULL;
         return false;
     }
+    printMessage("Последовательный порт открыт.");
 
+    printMessage("Настройка последовательного порта...");
 
     ok = serialPort.setBaudRate(QSerialPort::Baud115200);
     if (!ok)
@@ -83,7 +91,7 @@ bool Generator::connect(QSerialPortInfo &info)
         serialPort.close();
         delete serialPortInfo;
         serialPortInfo = NULL;
-        emit error("Не удалось установить скорость передачи данных");
+        emit error("Не удалось установить скорость передачи данных"+ serialPort.errorString());
         return false;
     }
 
@@ -94,7 +102,7 @@ bool Generator::connect(QSerialPortInfo &info)
         serialPort.close();
         delete serialPortInfo;
         serialPortInfo = NULL;
-        emit error("Не удалось установить информационный разряд");
+        emit error("Не удалось установить информационный разряд"+ serialPort.errorString());
         return false;
     }
 
@@ -106,10 +114,11 @@ bool Generator::connect(QSerialPortInfo &info)
         serialPort.close();
         delete serialPortInfo;
         serialPortInfo = NULL;
-        emit error("Не удалось установить паритет");
+        emit error("Не удалось установить паритет"+ serialPort.errorString());
         return false;
     }
 
+    printMessage("Последовательный порт открыт."+ serialPort.errorString());
     return true;
 }
 

@@ -51,13 +51,22 @@ bool GetU::setFrequency(float &m_f)
 
 bool GetU::isGetU(QSerialPortInfo &info)
 {
+    printMessage("Определяем относится ли данных последовательный порт к Гетеродину У.");
     bool success = Generator::connect(info);
     if (!success)
         return success;
 
     success = commute(1);
+    success = success && (info.vendorIdentifier() == vid) && (info.productIdentifier() == pid);
+
+    if  (success)
+            printMessage("Данный последовательный порт относиться к Гетеродину У");
+    else
+            printMessage("Данный последовательный порт не относиться к Гетеродину У");
+
+
     serialPort.close();
     delete serialPortInfo;
     serialPortInfo = NULL;
-    return success && (info.vendorIdentifier() == vid) && (info.productIdentifier() == pid);
+     return success;
 }

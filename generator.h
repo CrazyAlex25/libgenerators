@@ -123,6 +123,7 @@ protected:
 
     Calibrator calibrator;
 
+    static int objectCounter;
     const int vid;
     const int pid;
 
@@ -169,5 +170,5 @@ protected:
     QString logFileName;
     QFile logFile;
 
-};
+}; 
 #endif // GENERATOR_H

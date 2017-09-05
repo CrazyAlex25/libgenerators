@@ -61,15 +61,25 @@ void G3000::initialize()
 
 bool G3000::isG3000(QSerialPortInfo &info)
 {
+    printMessage("Определяем относится ли данных последовательный порт к РГШ3000...");
     bool success = Generator::connect(info);
     if (!success)
-        return success;
+          return success;
+
 
     success = commute(1);
+    success = success && (info.vendorIdentifier() == vid) && (info.productIdentifier() == pid);
+
+    if  (success)
+            printMessage("Данный последовательный порт относиться к РГШ3000");
+    else
+            printMessage("Данный последовательный порт не относиться к РГШ3000");
+
     serialPort.close();
     delete serialPortInfo;
     serialPortInfo = NULL;
-    return success && (info.vendorIdentifier() == vid) && (info.productIdentifier() == pid);
+
+    return success;
 
 
 }
@@ -78,14 +88,15 @@ bool G3000::connect(QSerialPortInfo &info)
 {
     bool success = Generator::connect(info);
     if (!success)
-        return success;
+          return success;
+
 
     connected = commute(1);
 
     if (connected ) {
-        printMessage( "Generator has been connected");
+        printMessage( "Генератор подключен");
         calibrator.load(":/G3000/calibration.txt");
-        printMessage("Amp calibration loaded");
+        printMessage("Калибровачная характеристика загружена");
     }
 
      return connected;

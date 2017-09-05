@@ -424,17 +424,23 @@ FrequencyGrid G4409::getFrequencyGrid()
 bool G4409::isG4409(QSerialPortInfo &info)
 {
 
+    printMessage("Определяем относится ли данных последовательный порт к РГШ4409...");
     bool success = Generator::connect(info);
     if (!success)
         return success;
 
     success = commute(LowFrequency);
+    success = success && (info.vendorIdentifier() == vid) && (info.productIdentifier() == pid);
+
+    if  (success)
+            printMessage("Данный последовательный порт относиться к РГШ4409");
+    else
+            printMessage("Данный последовательный порт не относиться к РГШ4409");
 
     serialPort.close();
     delete serialPortInfo;
     serialPortInfo = NULL;
-    return success && (info.vendorIdentifier() == vid) && (info.productIdentifier() == pid);
-
+     return success;
 
 }
 
