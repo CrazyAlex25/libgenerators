@@ -20,7 +20,7 @@ void GetU::timerEvent(QTimerEvent *event)
         return;
     }
 
-    if((timeOutTimerId == event->timerId()) && (!isnan(freq))) {
+    if((timeOutTimerId == event->timerId()) && (!std::isnan(freq))) {
         killTimer(timeOutTimerId);
         timeOutTimerId = -1;
         G3000::setFrequency(freq);
