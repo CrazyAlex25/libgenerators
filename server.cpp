@@ -8,7 +8,7 @@ Server::Server(int i_port, QObject *parent) : QObject(parent),
 
 }
 
-bool Server::start(int port)
+bool Server::start()
 {
     if (server != nullptr)
         delete server;
@@ -26,9 +26,19 @@ bool Server::start(int port)
 
 }
 
-bool Server::start()
+void  Server::setPort(int i_port)
 {
-    return start(port);
+    port = i_port;
+}
+
+int Server::getPort() const
+{
+    return port;
+}
+
+QHostAddress Server::getIp() const
+{
+    return server->serverAddress();
 }
 
 void  Server::readData()

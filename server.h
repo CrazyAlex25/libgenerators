@@ -10,7 +10,9 @@ class Server : public QObject
     Q_OBJECT
 public:
     explicit Server(int port, QObject *parent = nullptr);
-    bool start(int port);
+    void setPort(int i_port);
+    int getPort() const;
+    QHostAddress getIp() const;
     bool start();
 
 signals:

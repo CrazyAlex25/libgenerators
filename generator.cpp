@@ -424,7 +424,18 @@ int Generator::getVid()
 void  Generator::setTcpPort(int port)
 {
     printMessage("Изменен tcp порт: " + QString::number(port));
-    server.start(port);
+    server.setPort(port);
+    server.start();
+}
+
+int Generator::getTcpPort() const
+{
+    return server.getPort();
+}
+
+QHostAddress Generator::getIpAddress() const
+{
+    return server.getIp();
 }
 
 void Generator::amplitudeChanged(float amp)

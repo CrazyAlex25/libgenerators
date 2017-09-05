@@ -90,6 +90,8 @@ public:
 
     //Установка номера порта, по которому генератор будет слушать входящие комадны.
     void GENERATORS_EXPORT setTcpPort(int );
+    int GENERATORS_EXPORT getTcpPort() const;
+    QHostAddress GENERATORS_EXPORT getIpAddress() const;
 
     //возможные сетки частот генератора
     enum eFrequencyGrid {
