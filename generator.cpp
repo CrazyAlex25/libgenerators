@@ -241,6 +241,11 @@ void Generator::setFmMode(FmMode mode)
     }
 }
 
+FmMode Generator::getFmMode()
+{
+    return fmMode;
+}
+
 bool Generator::startFm(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep)
 {
     if (!connected) {

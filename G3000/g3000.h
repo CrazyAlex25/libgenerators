@@ -4,8 +4,10 @@
 #include <generator.h>
 #include <QThread>
 #include <G3000/commands3000.h>
+#include <cmath>
 
 #include <QVector>
+
 
 /* Класс G3000 осуществляет управление генератором РГШ3000
  */

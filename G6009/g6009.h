@@ -1,17 +1,17 @@
-#ifndef G4409_H
-#define G4409_H
+#ifndef G6009_H
+#define G6009_H
 
 #include <QObject>
 #include <generator.h>
 #include <generators_global.h>
-#include <G4409/commands4409.h>
+#include <G6009/commands6009.h>
 
-class  GENERATORS_EXPORT  G4409 : public Generator
+class  GENERATORS_EXPORT  G6009 : public Generator
 {
     Q_OBJECT
 public:
-    explicit G4409(QObject * parent = 0);
-    ~G4409();
+    explicit G6009(QObject * parent = 0);
+    ~G6009();
 
 public slots:
     bool GENERATORS_EXPORT turnOn(bool i_on) Q_DECL_OVERRIDE;
@@ -28,7 +28,7 @@ public:
     LevelControlMode GENERATORS_EXPORT getLevelControlMode() Q_DECL_OVERRIDE;
 
     void GENERATORS_EXPORT setSynthLevel(int level);
-    bool GENERATORS_EXPORT isG4409(QSerialPortInfo &info);
+    bool GENERATORS_EXPORT isG6009(QSerialPortInfo &info);
 
     // Состояния коммутатора
     enum eSwitcherState{
@@ -77,15 +77,15 @@ private:
     float attenuationMin;
     float attenuationStep;
 
-    Head4409 head;
-    Response4409 response;
-    Syntheziser4409 syntheziser;
-    Dds4409  dds;
-    Attenuator4409 attenuator1;
-    Attenuator4409 attenuator2;
-    Switcher4409 switcher;
-    Reset4409 reset;
+    Head6009 head;
+    Response6009 response;
+    Syntheziser6009 syntheziser;
+    Dds6009  dds;
+    Attenuator6009 attenuator1;
+    Attenuator6009 attenuator2;
+    Switcher6009 switcher;
+    Reset6009 reset;
 
 };
 
-#endif // G4409_H
+#endif // G6009_H

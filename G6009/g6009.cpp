@@ -1,8 +1,8 @@
-#include "g4409.h"
+#include "g6009.h"
 #include <QDebug>
 #include <QThread>
 
-G4409::G4409(QObject *parent)  :
+G6009::G6009(QObject *parent)  :
     Generator(0x0403, //vid
                                           0x6001, //pid
                                           9e3, // lowestFreq
@@ -26,7 +26,7 @@ G4409::G4409(QObject *parent)  :
 
 }
 
-G4409::~G4409()
+G6009::~G6009()
 {
     if (serialPortInfo != nullptr)
         delete serialPortInfo;
@@ -40,7 +40,7 @@ G4409::~G4409()
 /* Метод проверяет ответ от генератора. Возращает true, если получен
  * ожидаемый ответ.
  */
-bool G4409::checkResponse()
+bool G6009::checkResponse()
 {
     // Ждем ответа от генератора
     bool  success = true;
@@ -95,7 +95,7 @@ bool G4409::checkResponse()
 }
 
 
-bool G4409::turnOn(bool i_on)
+bool G6009::turnOn(bool i_on)
 {
     if (!connected) {
         printMessage("Can't execute command. Generator is not connected.");
@@ -154,7 +154,7 @@ bool G4409::turnOn(bool i_on)
     return true;
 }
 
-bool G4409::setAmp(float &m_amp)
+bool G6009::setAmp(float &m_amp)
 {
     currentAmp = m_amp;
     bool success = false;
@@ -188,7 +188,7 @@ bool G4409::setAmp(float &m_amp)
     return success;
 }
 
-bool G4409::setAttenuation(float &attenuation)
+bool G6009::setAttenuation(float &attenuation)
 {
     if (!connected) {
         printMessage("Can't set attenuator. Generator is not connected.");
@@ -242,12 +242,12 @@ bool G4409::setAttenuation(float &attenuation)
     return true;
 }
 
-float G4409::getAttenuation()
+float G6009::getAttenuation()
 {
     return NAN;
 }
 
-bool G4409::commute(quint8 key)
+bool G6009::commute(quint8 key)
 {
     if (on) {
         switch (key)
@@ -292,7 +292,7 @@ bool G4409::commute(quint8 key)
     return true;
 }
 
-bool G4409:: setFrequency(float &m_fHz)
+bool G6009:: setFrequency(float &m_fHz)
 {
     if (!connected) {
         printMessage("Can't execute command. Generator is not connected.");
@@ -401,7 +401,7 @@ bool G4409:: setFrequency(float &m_fHz)
 }
 
 
-void G4409::setFrequencyGrid(int i_frequencyGrid)
+void G6009::setFrequencyGrid(int i_frequencyGrid)
 {
     switch (i_frequencyGrid)
     {
@@ -416,15 +416,15 @@ void G4409::setFrequencyGrid(int i_frequencyGrid)
 }
 
 
-FrequencyGrid G4409::getFrequencyGrid()
+FrequencyGrid G6009::getFrequencyGrid()
 {
     return frequencyGrid;
 }
 
-bool G4409::isG4409(QSerialPortInfo &info)
+bool G6009::isG6009(QSerialPortInfo &info)
 {
 
-    printMessage("Определяем относится ли данных последовательный порт к РГШ4409...");
+    printMessage("Определяем относится ли данных последовательный порт к РГШ6009...");
     bool success = Generator::connect(info);
     if (!success)
         return success;
@@ -433,9 +433,9 @@ bool G4409::isG4409(QSerialPortInfo &info)
     success = success && (info.vendorIdentifier() == vid) && (info.productIdentifier() == pid);
 
     if  (success)
-            printMessage("Данный последовательный порт относиться к РГШ4409");
+            printMessage("Данный последовательный порт относиться к РГШ6009");
     else
-            printMessage("Данный последовательный порт не относиться к РГШ4409");
+            printMessage("Данный последовательный порт не относиться к РГШ6009");
 
     serialPort.close();
     delete serialPortInfo;
@@ -444,7 +444,7 @@ bool G4409::isG4409(QSerialPortInfo &info)
 
 }
 
-bool G4409::connect(QSerialPortInfo &info)
+bool G6009::connect(QSerialPortInfo &info)
 {
     bool success = Generator::connect(info);
     if (!success)
@@ -454,7 +454,7 @@ bool G4409::connect(QSerialPortInfo &info)
 
     if (connected) {
         printMessage( "Генератор успешно подключен");
-        calibrator.load(QString(":/G4409/calibration.txt"));
+        calibrator.load(QString(":/G6009/calibration.txt"));
         printMessage("Калибровочная характеристика загружена");
     }
 
@@ -465,13 +465,13 @@ bool G4409::connect(QSerialPortInfo &info)
      return connected;
 }
 
-void G4409::writeHead()
+void G6009::writeHead()
 {
-    Head4409 head;
+    Head6009 head;
     serialPort.write((char *)&head , sizeof( head));
 }
 
-void G4409::setLevelControlMode(LevelControlMode mode)
+void G6009::setLevelControlMode(LevelControlMode mode)
 {
     switch (mode) {
     case Amplitude:
@@ -486,12 +486,12 @@ void G4409::setLevelControlMode(LevelControlMode mode)
     }
 }
 
-LevelControlMode G4409::getLevelControlMode()
+LevelControlMode G6009::getLevelControlMode()
 {
     return levelControlMode;
 }
 
-void G4409::setSynthLevel(int level)
+void G6009::setSynthLevel(int level)
 {
     switch (level)
     {

@@ -14,31 +14,31 @@ TEMPLATE = lib
 DEFINES += GENERATORS_LIBRARY
 
 SOURCES += \
-        G3000/g3000.cpp \
-    generator.cpp \
-    G4409/g4409.cpp \
-    searcher.cpp \
+    G3000/g3000.cpp \
+    G6009/g6009.cpp \
     calibrator.cpp \
+    generator.cpp \
     getu.cpp \
+    searcher.cpp \
     server.cpp
 
 HEADERS +=\
     G3000/g3000.h \
     generator.h \
-    G4409/g4409.h \
     generators_global.h \
-    G4409/commands4409.h \
     G3000/commands3000.h \
-    searcher.h \
     calibrator.h \
     getu.h \
-    server.h
+    searcher.h \
+    server.h \
+    G6009/g6009.h \
+    G6009/commands6009.h
 
-VERSION = 1.3.0
+VERSION = 1.3.2
 
 unix {
 
-    INCLUDEPATH += /usr/include/c++/
+    INCLUDEPATH += /usr/include/c++/5.4.0
     target.path = /usr/local/lib/radiy
     INSTALLS += target
 
@@ -70,8 +70,8 @@ win32 {
 
 DISTFILES += \
     calibration.txt \
-    calibration4409.txt \
-    calibration4409.txt
+    calibration6009.txt \
+    calibration6009.txt
 
 RESOURCES += \
     amp.qrc

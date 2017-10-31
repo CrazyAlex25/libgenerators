@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>G4409/calibration.txt</file>
         <file>G3000/calibration.txt</file>
+        <file>G6009/calibration.txt</file>
     </qresource>
 </RCC>
