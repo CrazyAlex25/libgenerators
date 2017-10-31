@@ -51,6 +51,7 @@ public slots:
     void GENERATORS_EXPORT stopFm();
     // Выбор режима ЧМ
     void GENERATORS_EXPORT setFmMode(FmMode mode);
+    FmMode GENERATORS_EXPORT getFmMode();
 
 public:
     // Возврат текущего значения амплитуды

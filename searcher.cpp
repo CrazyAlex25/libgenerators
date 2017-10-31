@@ -8,7 +8,7 @@ void Searcher::autosearch(QSerialPortInfo &info, GeneratorModel &model)
 {
 
     G3000 g3000;
-    G4409 g4409;
+    G6009 g6009;
     GetU getU;
 
     int deviceCounter = 0;
@@ -28,10 +28,10 @@ void Searcher::autosearch(QSerialPortInfo &info, GeneratorModel &model)
         bool isRateos = infoList[i].vendorIdentifier() == getU.getVid();
 
         bool isG3000 = infoList[i].productIdentifier() == g3000.getPid();
-        bool isG4409 = infoList[i].productIdentifier() == g4409.getPid();
+        bool isG6009 = infoList[i].productIdentifier() == g6009.getPid();
         bool isGetU =  infoList[i].productIdentifier() == getU.getPid();
 
-        if ((isRadiyTn || isRateos) && (isG3000 || isG4409 || isGetU)) {
+        if ((isRadiyTn || isRateos) && (isG3000 || isG6009 || isGetU)) {
             deviceNum = i;
             ++deviceCounter;
         }
@@ -61,8 +61,8 @@ void Searcher::determineModel(QSerialPortInfo info, GeneratorModel &model)
 
     G3000 g3000;
     g3000.enableVerbose(true);
-    G4409 g4409;
-    g4409.enableVerbose(true);
+    G6009 g6009;
+    g6009.enableVerbose(true);
     GetU getU;
     getU.enableVerbose(true);
 
@@ -75,10 +75,10 @@ void Searcher::determineModel(QSerialPortInfo info, GeneratorModel &model)
         return;
     }
 
-    success = g4409.isG4409(info);
+    success = g6009.isG6009(info);
 
     if (success) {
-        model = Generator4409;
+        model = Generator6009;
         return;
     }
 
