@@ -2,7 +2,7 @@
 #include <QDir>
 #include <QDebug>
 
-Generator::Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFreq, float i_tFmMin, float i_tFmMax, float i_fFmBandStop, QObject *parent) : QObject(parent),
+Generator::Generator(int i_vid, int i_pid, double i_lowestFreq, double i_highestFreq, double i_tFmMin, double i_tFmMax, double i_fFmBandStop, QObject *parent) : QObject(parent),
     calibrator(this),
     server(50600, this),
     vid(i_vid),
@@ -179,10 +179,10 @@ void Generator::enableLogs(bool input)
     logs = input;
 }
 
-float Generator::roundToGrid(float f)
+double Generator::roundToGrid(double f)
 {
 
-    float result = 0;
+    double result = 0;
 
     switch (frequencyGrid)
     {
@@ -246,7 +246,7 @@ FmMode Generator::getFmMode()
     return fmMode;
 }
 
-bool Generator::startFm(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep)
+bool Generator::startFm(double &m_fStart, double &m_fStop, double &m_fStep, double &m_timeStep)
 {
     if (!connected) {
         printMessage("Can't execute command. Generator is not connected");
@@ -287,7 +287,7 @@ bool Generator::startFm(float &m_fStart, float &m_fStop, float &m_fStep, float &
     fFmStop = m_fStop;
 
     if (m_fStart > m_fStop) {
-        float tmp = m_fStart;
+        double tmp = m_fStart;
         m_fStart = m_fStop;
         m_fStop = tmp;
     }
@@ -318,7 +318,7 @@ bool Generator::startFm(float &m_fStart, float &m_fStop, float &m_fStep, float &
     fmCounter = 0;
 
 //    //  Поиск минимальной амплитуды в полосе
-//    float ampMin = ampMax;
+//    double ampMin = ampMax;
 //    for (quint64 f = fFmStart; f < fFmStop; f += fFmStep)
 //    {
 //        int ind = f / fAmpCorrectionStep;
@@ -365,7 +365,7 @@ void Generator::fmIteration()
 
 
     QTime tFmStop = QTime::currentTime();
-    float tFm =  tFmStart.msecsTo(tFmStop) * 1e-3;
+    double tFm =  tFmStart.msecsTo(tFmStop) * 1e-3;
     tFmStart = tFmStop;
     emit newTFm(tFm);
     setFrequency(fFm);
@@ -391,12 +391,12 @@ void Generator :: stopFm()
 }
 
 
-float Generator::getAmp()
+double Generator::getAmp()
 {
     return currentAmp;
 }
 
-float Generator::getFrequency()
+double Generator::getFrequency()
 {
     return currentFrequency;
 }
@@ -443,13 +443,13 @@ QHostAddress Generator::getIpAddress() const
     return server.getIp();
 }
 
-void Generator::amplitudeChanged(float amp)
+void Generator::amplitudeChanged(double amp)
 {
     setAmp(amp);
     emit newAmplitude(amp);
 }
 
-void Generator::frequencyChanged(float freq)
+void Generator::frequencyChanged(double freq)
 {
     setFrequency(freq);
     emit newFrequency(freq);

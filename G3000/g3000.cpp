@@ -168,7 +168,7 @@ bool G3000::commute(quint8 key)
 }
 
 // Установка амлитуды. Функция возвращает значение реально установленной амплитуды
-bool G3000::setAmp(float &amp)
+bool G3000::setAmp(double &amp)
 {
     currentAmp = amp;
     bool success = false;
@@ -185,11 +185,11 @@ bool G3000::setAmp(float &amp)
          if (amp > maxAmp)
              amp = maxAmp;
 
-         float attenuation = 20 * log10(maxAmp / amp);
+         double attenuation = 20 * log10(maxAmp / amp);
 
          success = setAttenuation(attenuation);
 
-         float koef  = pow (10.0, attenuation / 20.0);
+         double koef  = pow (10.0, attenuation / 20.0);
          amp = maxAmp / koef ;
 
 
@@ -205,7 +205,7 @@ bool G3000::setAmp(float &amp)
 }
 
 // Установка значений аттенюатора. Функция возвращает значение реально установленной амплитуды
-bool G3000::setAttenuation(float &attenuation)
+bool G3000::setAttenuation(double &attenuation)
 {
        if (!connected) {
            printMessage("Can't set attenuator. Generator is not connected.");
@@ -315,7 +315,7 @@ bool G3000::checkResponse()
 }
 
 /* Установка частоты. Возвращает значение реально установленной частоты */
-bool G3000 :: setFrequency(float &m_freq)
+bool G3000 :: setFrequency(double &m_freq)
 {
     if (!connected) {
         printf("Can't execute command. Generator is not connected.");
@@ -333,11 +333,11 @@ bool G3000 :: setFrequency(float &m_freq)
     m_freq = roundToGrid(m_freq);
 
     currentFrequency = m_freq;
-    float f = m_freq;
+    double f = m_freq;
 
     // Выставление опорного генератора
     if (f < 275e6) {
-        //float referenceFrequency_old = referenceFrequency;
+        //double referenceFrequency_old = referenceFrequency;
         if ( ((f > 155e6) && (f < 160e6)) ||
              ((f > 180e6) && (f < 186e6)) ||
              ((f > 215e6) && (f < 225e6)) ||
@@ -598,7 +598,7 @@ bool G3000 :: setFrequency(float &m_freq)
 
     printMessage("Setted Frequency " + QString::number(f) + "Hz");
 
-    float amp = currentAmp;
+    double amp = currentAmp;
     setAmp(amp);
     emit newAmplitude(amp);
     return true;
@@ -644,7 +644,7 @@ FrequencyGrid G3000::getFrequencyGrid()
     return frequencyGrid;
 }
 
-float G3000::getReferenceFrequency(int refFreq)
+double G3000::getReferenceFrequency(int refFreq)
 {
     switch (refFreq)
     {

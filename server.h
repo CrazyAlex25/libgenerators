@@ -20,9 +20,9 @@ signals:
     void disconnected();
     void error(QString);
     void turnOn(bool i_on);
-    void setAmp(float &amp);
-    void setFrequency(float f);
-    void startFm(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep);
+    void setAmp(double &amp);
+    void setFrequency(double f);
+    void startFm(double &m_fStart, double &m_fStop, double &m_fStep, double &m_timeStep);
     void stopFm();
     void setFmMode(int mode);
 

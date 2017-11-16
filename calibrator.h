@@ -14,8 +14,8 @@ class Calibrator : public QObject
 public:
     explicit Calibrator(QObject *parent = nullptr);
     void load(QString filename);
-    double getAmp(float fHz);
-    void setBandBorder(float fHz);
+    double getAmp(double fHz);
+    void setBandBorder(double fHz);
 
 signals:
     void error(QString err);
@@ -24,8 +24,8 @@ private:
     QVector<double> ampCorrection;
     double stepHigh;
     double stepLow;
-    float ampMax;
-    float bandBorder;
+    double ampMax;
+    double bandBorder;
 
 };
 

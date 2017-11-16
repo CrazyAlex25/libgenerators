@@ -32,7 +32,7 @@ class GENERATORS_EXPORT Generator : public QObject
 {
   Q_OBJECT
 public:
-    explicit Generator(int i_vid, int i_pid, float i_lowestFreq, float i_highestFreq, float i_tFmMin, float i_tFmMax, float i_fFmBandStop, QObject * parent = 0);
+    explicit Generator(int i_vid, int i_pid, double i_lowestFreq, double i_highestFreq, double i_tFmMin, double i_tFmMax, double i_fFmBandStop, QObject * parent = 0);
 
 public slots:
     void errorSlot(QString err);
@@ -40,13 +40,13 @@ public slots:
     virtual bool GENERATORS_EXPORT turnOn(bool i_on) = 0;
 
     // Установка амплитуды
-    virtual bool GENERATORS_EXPORT setAmp(float &m_amp) = 0;
+    virtual bool GENERATORS_EXPORT setAmp(double &m_amp) = 0;
 
     // Установка частоты
-    virtual bool GENERATORS_EXPORT setFrequency(float &m_f) = 0;
+    virtual bool GENERATORS_EXPORT setFrequency(double &m_f) = 0;
 
     // Запуск ЧМ
-    bool GENERATORS_EXPORT startFm(float &m_fStart, float &m_fStop, float &m_fStep, float &m_timeStep);
+    bool GENERATORS_EXPORT startFm(double &m_fStart, double &m_fStop, double &m_fStep, double &m_timeStep);
     // Остановка ЧМ
     void GENERATORS_EXPORT stopFm();
     // Выбор режима ЧМ
@@ -55,10 +55,10 @@ public slots:
 
 public:
     // Возврат текущего значения амплитуды
-    float GENERATORS_EXPORT getAmp();
+    double GENERATORS_EXPORT getAmp();
 
     // Возврат текущего значения частоты
-    float GENERATORS_EXPORT getFrequency();
+    double GENERATORS_EXPORT getFrequency();
 
     // Установка шага частотной сетки
     virtual void GENERATORS_EXPORT setFrequencyGrid(int i_frequencyGrid) = 0;
@@ -120,19 +120,19 @@ public:
 signals:
     void error(QString e);
     void disconnected();
-    void newFrequency(float freq_Hz);
-    void newAmplitude(float amp_V);
+    void newFrequency(double freq_Hz);
+    void newAmplitude(double amp_V);
     void newState(bool on);
     void netControl(bool on);
     void turnedOn(bool on);
-    void newTFm(float t_s);
+    void newTFm(double t_s);
 
 
 
 protected slots:
     void  printMessage(QString message);
-    void amplitudeChanged(float amp);
-    void frequencyChanged(float freq);
+    void amplitudeChanged(double amp);
+    void frequencyChanged(double freq);
     void stateChanged(bool on);
     void serverConnected();
     void serverDisconnected();
@@ -142,7 +142,7 @@ protected:
     void timerEvent(QTimerEvent *event) Q_DECL_OVERRIDE;
     void fmIteration();
 
-    float roundToGrid(float);
+    double roundToGrid(double);
     double log2(double x);
 
     Calibrator calibrator;
@@ -158,26 +158,26 @@ protected:
     bool verbose;
     bool logs;
 
-    const float lowestFrequency;
-    const float highestFrequency;
+    const double lowestFrequency;
+    const double highestFrequency;
     int frequencyGrid;
-    float currentFrequency;
+    double currentFrequency;
 
-    float currentAmp;
+    double currentAmp;
 
-    float fFmStart;
-    float fFmStop;
-    float fFmStep;
-    float fFm;
-    float fFmStopBand;   //Частота, которое делит весь диапазон частот на нижний и верхний
+    double  fFmStart;
+    double fFmStop;
+    double fFmStep;
+    double fFm;
+    double fFmStopBand;   //Частота, которое делит весь диапазон частот на нижний и верхний
                                      // При переходе через нее идет переходный процесс, поэтому качать частоту
                                      // непрерывно невозможно. Если такого разделения нет, то установить значение
                                      // fFmStopBand > highestFrequency.
     int fmMode;
     int fmCounter;
 
-    const float tFmMin;
-    const float tFmMax;
+    const double tFmMin;
+    const double tFmMax;
     QTime tFmStart;
 
     int levelControlMode;

@@ -57,7 +57,7 @@ void  Server::readData()
             }
 
             bool success;
-            float  freqHz = freqStr.toFloat(&success);
+            double  freqHz = freqStr.toDouble(&success);
             if (! success) {
                 emit error("Не удалось распознать команду: " + command);
                 return;
@@ -75,7 +75,7 @@ void  Server::readData()
             }
 
             bool success;
-            float  ampV = ampStr.toFloat(&success);
+            double  ampV = ampStr.toDouble(&success);
             if (! success) {
                 emit error("Не удалось распознать команду: " + command);
                 return;
@@ -167,25 +167,25 @@ void  Server::readData()
                 }
 
                 bool success;
-                float  fStart = fStartStr.toFloat(&success);
+                double  fStart = fStartStr.toDouble(&success);
                 if (! success) {
                     emit error("Не удалось распознать команду: " + command);
                     return;
                 }
 
-                float  fStop = fStopStr.toFloat(&success);
+                double  fStop = fStopStr.toDouble(&success);
                 if (! success) {
                     emit error("Не удалось распознать команду: " + command);
                     return;
                 }
 
-                float  fStep = fStepStr.toFloat(&success);
+                double  fStep = fStepStr.toDouble(&success);
                 if (! success) {
                     emit error("Не удалось распознать команду: " + command);
                     return;
                 }
 
-                float  t = tStr.toFloat(&success);
+                double  t = tStr.toDouble(&success);
                 if (! success) {
                     emit error("Не удалось распознать команду: " + command);
                     return;
