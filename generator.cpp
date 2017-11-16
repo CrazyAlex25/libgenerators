@@ -155,6 +155,7 @@ void Generator::timerEvent(QTimerEvent * event)
 
             delete serialPortInfo;
             serialPortInfo = NULL;
+            serialPort.close();
             emit disconnected();
         }
 
@@ -469,4 +470,19 @@ void Generator::serverConnected()
 void Generator::serverDisconnected()
 {
     emit netControl(false);
+}
+
+void Generator::startServer()
+{
+    bool success = server.start();
+    if (success)
+        printMessage("Tcp сервер запущен");
+}
+
+
+void Generator::stopServer()
+{
+    bool success = server.start();
+    if (success)
+        printMessage("Tcp сервер, слущающий команды, запущен");
 }

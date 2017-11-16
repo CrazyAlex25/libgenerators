@@ -94,6 +94,10 @@ public:
     int GENERATORS_EXPORT getTcpPort() const;
     QHostAddress GENERATORS_EXPORT getIpAddress() const;
 
+    //Управление сервером, слущающего команды
+    void GENERATORS_EXPORT startServer();
+    void GENERATORS_EXPORT stopServer();
+
     //возможные сетки частот генератора
     enum eFrequencyGrid {
         Grid1, // 1 Кгц

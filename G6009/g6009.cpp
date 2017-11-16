@@ -345,7 +345,7 @@ bool G6009:: setFrequency(double &m_fHz)
 
     double tmp1 = std::pow(2,  k) * fSynthMHz;
     int tmp2 = tmp1 /  25 ;
-    int tmp3 = std::fmod(tmp1,  25) * 100;
+    int tmp3 = std::round(std::fmod(tmp1,  25) * 100);
     quint32 f_Code= ( tmp2 << 15 ) + (  tmp3<< 3 );
 
     for (qint8 i = sizeof(syntheziser.freq) - 1; i >= 0; --i  )
@@ -456,10 +456,6 @@ bool G6009::connect(QSerialPortInfo &info)
         calibrator.load(QString(":/G6009/calibration.txt"));
         printMessage("Калибровочная характеристика загружена");
     }
-
-    success = server.start();
-    if (success)
-        printMessage("Tcp сервер, слущающий команды, запущен");
 
      return connected;
 }

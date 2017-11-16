@@ -14,6 +14,7 @@ public:
     int getPort() const;
     QHostAddress getIp() const;
     bool start();
+    void stop();
 
 signals:
     void connected();

@@ -26,6 +26,13 @@ bool Server::start()
 
 }
 
+void Server::stop()
+{
+    server->close();
+    delete server;
+    disconnect(server, &QTcpServer::newConnection, this, &Server::newConnection);
+}
+
 void  Server::setPort(int i_port)
 {
     port = i_port;

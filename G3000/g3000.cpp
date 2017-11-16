@@ -99,10 +99,6 @@ bool G3000::connect(QSerialPortInfo &info)
         printMessage("Калибровачная характеристика загружена");
     }
 
-    success = server.start();
-    if (success)
-        printMessage("Tcp сервер, слущающий команды, запущен");
-
     return connected;
 }
 
