@@ -103,7 +103,7 @@ bool G6009::turnOn(bool i_on)
     }
 
 
-    float fMHz =  currentFrequency / 1e6;
+    double fMHz =  currentFrequency / 1e6;
 
 
     if ( fMHz <= 25){
@@ -154,7 +154,7 @@ bool G6009::turnOn(bool i_on)
     return true;
 }
 
-bool G6009::setAmp(float &m_amp)
+bool G6009::setAmp(double &m_amp)
 {
     currentAmp = m_amp;
     bool success = false;
@@ -171,7 +171,7 @@ bool G6009::setAmp(float &m_amp)
          if (m_amp > maxAmp)
              m_amp = maxAmp;
 
-         float attenuation = 20 * log10(maxAmp / m_amp);
+         double attenuation = 20 * log10(maxAmp / m_amp);
 
          success = setAttenuation(attenuation);
 
@@ -188,7 +188,7 @@ bool G6009::setAmp(float &m_amp)
     return success;
 }
 
-bool G6009::setAttenuation(float &attenuation)
+bool G6009::setAttenuation(double &attenuation)
 {
     if (!connected) {
         printMessage("Can't set attenuator. Generator is not connected.");
@@ -242,7 +242,7 @@ bool G6009::setAttenuation(float &attenuation)
     return true;
 }
 
-float G6009::getAttenuation()
+double G6009::getAttenuation()
 {
     return NAN;
 }
@@ -292,7 +292,7 @@ bool G6009::commute(quint8 key)
     return true;
 }
 
-bool G6009:: setFrequency(float &m_fHz)
+bool G6009:: setFrequency(double &m_fHz)
 {
     if (!connected) {
         printMessage("Can't execute command. Generator is not connected.");
@@ -306,11 +306,10 @@ bool G6009:: setFrequency(float &m_fHz)
         m_fHz = highestFrequency;
 
     // Округление до деления выбранной сетки
-//    m_freq = roundToGrid(m_freq);
-
+    m_fHz = roundToGrid(m_fHz);
     currentFrequency = m_fHz;
-    float fMHz = m_fHz / 1e6;
-    float fSynthMHz;
+    double fMHz = m_fHz / 1e6;
+    double fSynthMHz;
 
     // Формирование команд на нужный режим работ генератора
     if ( fMHz <= 25){
@@ -340,20 +339,20 @@ bool G6009:: setFrequency(float &m_fHz)
         }
     }
 
-        quint16 k = log2(6000 / fSynthMHz);
-        quint16 n = 0x8F + (k<<4);
-        syntheziser.data[5] = n;
+    int k = log2(6000 / fSynthMHz);
+    int n = 0x8F + (k<<4);
+    syntheziser.data[5] = n;
 
-        int tmp1 = std::pow(2, k) * fSynthMHz;
-        int tmp2 = tmp1 /  25 ;
-        int tmp3 = ( tmp1  %  25) * 100;
-        quint32 f_Code= ( tmp2 << 15 ) + (  tmp3<< 3 );
+    double tmp1 = std::pow(2,  k) * fSynthMHz;
+    int tmp2 = tmp1 /  25 ;
+    int tmp3 = std::round(std::fmod(tmp1,  25) * 100);
+    quint32 f_Code= ( tmp2 << 15 ) + (  tmp3<< 3 );
 
-        for (qint8 k = sizeof(syntheziser.freq) - 1; k >= 0; --k  )
-        {
-        syntheziser.freq[ k ] = (quint8)f_Code;
+    for (qint8 i = sizeof(syntheziser.freq) - 1; i >= 0; --i  )
+    {
+        syntheziser.freq[ i ] = (quint8)f_Code;
         f_Code = f_Code >> 8;
-        }
+    }
 
 
 
@@ -393,7 +392,7 @@ bool G6009:: setFrequency(float &m_fHz)
 
     printMessage("Setted Frequency " + QString::number(fMHz) + "МHz");
 
-    float amp = currentAmp;
+    double amp = currentAmp;
     setAmp(amp);
     emit newAmplitude(amp);
 
@@ -457,10 +456,6 @@ bool G6009::connect(QSerialPortInfo &info)
         calibrator.load(QString(":/G6009/calibration.txt"));
         printMessage("Калибровочная характеристика загружена");
     }
-
-    success = server.start();
-    if (success)
-        printMessage("Tcp сервер, слущающий команды, запущен");
 
      return connected;
 }

@@ -15,8 +15,8 @@ public:
 
 public slots:
     bool GENERATORS_EXPORT turnOn(bool i_on) Q_DECL_OVERRIDE;
-    bool GENERATORS_EXPORT setAmp(float &m_amp) Q_DECL_OVERRIDE;
-    bool GENERATORS_EXPORT setFrequency(float &m_f) Q_DECL_OVERRIDE;
+    bool GENERATORS_EXPORT setAmp(double &m_amp) Q_DECL_OVERRIDE;
+    bool GENERATORS_EXPORT setFrequency(double &m_f) Q_DECL_OVERRIDE;
 
 public:
     void GENERATORS_EXPORT setFrequencyGrid(int i_frequencyGrid) Q_DECL_OVERRIDE;
@@ -48,17 +48,17 @@ public:
 signals:
 //    void error(QString e);
 //    void disconnected();
-//    void newFrequency(float freq_Hz);
-//    void newAmplitude(float amp_V);
-//    void newTFm(float t_s);
+//    void newFrequency(double freq_Hz);
+//    void newAmplitude(double amp_V);
+//    void newTFm(double t_s);
 
 private:
 
     bool  commute(quint8);
-    bool setAttenuation(float &attenuation);
-    float getAttenuation();
+    bool setAttenuation(double &attenuation);
+    double getAttenuation();
     bool checkResponse();
-    float getReferenceFrequency(int refFreq);
+    double getReferenceFrequency(int refFreq);
     double getAmpCorrection();
     void writeHead();
 
@@ -71,11 +71,11 @@ private:
     };
 
     quint8 synthLevel;
-    float referenceFrequency;
+    double referenceFrequency;
 
-    float attenuationMax;
-    float attenuationMin;
-    float attenuationStep;
+    double attenuationMax;
+    double attenuationMin;
+    double attenuationStep;
 
     Head6009 head;
     Response6009 response;

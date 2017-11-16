@@ -24,7 +24,7 @@ void Calibrator:: load(QString fileName)
     double f2;
     double P_dBm;
     double amp_V;
-    float ampMax = -qInf();
+    double ampMax = -qInf();
     in >> f1;
     in >> P_dBm;
     amp_V = pow(10, ((P_dBm + 30 + 16.99)/ 20) - 3) * sqrt(2);
@@ -80,12 +80,12 @@ void Calibrator:: load(QString fileName)
     qDebug() << "Frequency step in high band is: " + QString::number(stepHigh);
 }
 
-void Calibrator::setBandBorder(float fHz)
+void Calibrator::setBandBorder(double fHz)
 {
     bandBorder = fHz;
 }
 
-double Calibrator::getAmp(float f)
+double Calibrator::getAmp(double f)
 {
     if (std::isnan(f))
         return ampCorrection[1];

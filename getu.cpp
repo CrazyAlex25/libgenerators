@@ -38,7 +38,7 @@ bool GetU::turnOn(bool i_on)
     return G3000::turnOn(i_on);
 }
 
-bool GetU::setAmp(float &m_amp)
+bool GetU::setAmp(double &m_amp)
 {
     if (timeOutTimerId != -1)
         killTimer(timeOutTimerId);
@@ -47,7 +47,7 @@ bool GetU::setAmp(float &m_amp)
     return G3000::setAmp(m_amp);
 }
 
-bool GetU::setFrequency(float &m_f)
+bool GetU::setFrequency(double &m_f)
 {
     if (timeOutTimerId != -1)
         killTimer(timeOutTimerId);
