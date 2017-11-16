@@ -356,6 +356,9 @@ bool G6009:: setFrequency(double &m_fHz)
     }
 
 
+    m_fHz = ((double)tmp2 * 25 / pow(2, k) + (double)tmp3 / 100 / pow(2, k)) * 1e6;
+
+
 
     serialPort.write((char *)&syntheziser, sizeof(syntheziser));
     bool status = checkResponse();
