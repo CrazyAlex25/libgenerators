@@ -305,8 +305,9 @@ bool G6009:: setFrequency(double &m_fHz)
     if ( m_fHz > highestFrequency )
         m_fHz = highestFrequency;
 
-    // Округление до деления выбранной сетки
-    m_fHz = roundToGrid(m_fHz);
+//    // Округление до деления выбранной сетки
+//    m_fHz = roundToGrid(m_fHz);
+
     currentFrequency = m_fHz;
     double fMHz = m_fHz / 1e6;
     double fSynthMHz;

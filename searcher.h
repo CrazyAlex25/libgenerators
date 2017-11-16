@@ -14,7 +14,7 @@ public:
 
     //Установить связь с устройством с заданным pid и vid ( работает только если нет устройств
     // с одинаковыми pid и vid)
-    static void GENERATORS_EXPORT autosearch(QSerialPortInfo &o_info, GeneratorModel &o_model);
+    static int autosearch(QSerialPortInfo &o_info, GeneratorModel &o_model);
     static void GENERATORS_EXPORT determineModel(QSerialPortInfo i_info, GeneratorModel &o_model);
     enum eModels{
         Generator3000,

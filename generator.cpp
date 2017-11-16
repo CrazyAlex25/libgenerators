@@ -150,12 +150,11 @@ void Generator::timerEvent(QTimerEvent * event)
                 isInList = true;
 
         if (info.isEmpty() || !isInList ) {
-            printMessage( "Lost connection" );
+            printMessage( "Разорванно соединение с генератором" );
 
             delete serialPortInfo;
             serialPortInfo = NULL;
             serialPort.close();
-            qDebug() << serialPort.portName();
             delete serialPortInfo;
             emit disconnected();
         }

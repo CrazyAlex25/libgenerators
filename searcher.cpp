@@ -4,9 +4,10 @@ Searcher::Searcher()
 {
 
 }
-void Searcher::autosearch(QSerialPortInfo &info, GeneratorModel &model)
+int Searcher::autosearch(QSerialPortInfo &info, GeneratorModel &model)
 {
-
+    // Ищет среди подключенных устройств генераторы.
+    // возвращает количество устройств, подходящих по параметрам
     G3000 g3000;
     G6009 g6009;
     GetU getU;
@@ -18,7 +19,7 @@ void Searcher::autosearch(QSerialPortInfo &info, GeneratorModel &model)
 
     if (infoList.isEmpty()) {
         model = None;
-        return;
+        return 0;
     }
 
     for (int i = 0; i < infoList.length(); ++i)
@@ -41,12 +42,12 @@ void Searcher::autosearch(QSerialPortInfo &info, GeneratorModel &model)
 
     if (deviceCounter == 0) {
         model = None;
-        return;
+        return 0;
     }
 
     if (deviceCounter > 1) {
         model = None;
-        return;
+        return deviceCounter;
     }
 
     //g3000.thread()->sleep(1);
@@ -54,6 +55,7 @@ void Searcher::autosearch(QSerialPortInfo &info, GeneratorModel &model)
     info = infoList[deviceNum];
 
     determineModel(info, model);
+    return deviceCounter;
 }
 
 void Searcher::determineModel(QSerialPortInfo info, GeneratorModel &model)
