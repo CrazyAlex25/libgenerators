@@ -90,7 +90,6 @@ bool Generator::connect(QSerialPortInfo &info)
         printMessage(message);
         emit error(message);
         serialPort.close();
-        delete serialPortInfo;
         serialPortInfo = NULL;
         return false;
     }
@@ -156,6 +155,8 @@ void Generator::timerEvent(QTimerEvent * event)
             delete serialPortInfo;
             serialPortInfo = NULL;
             serialPort.close();
+            qDebug() << serialPort.portName();
+            delete serialPortInfo;
             emit disconnected();
         }
 
