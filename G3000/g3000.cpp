@@ -46,7 +46,7 @@ void G3000::initialize()
 
     calibrator.setBandBorder(275e6);
 
-    setFrequencyGrid(Grid10);
+    setFrequencyGrid(Grid1);
     syntheziser1.data[7] = 36;
     //commutator = 0;
 

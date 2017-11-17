@@ -157,6 +157,11 @@ bool G6009::turnOn(bool i_on)
 bool G6009::setAmp(double &m_amp)
 {
     currentAmp = m_amp;
+
+    // Обработка входных данных
+    if ( m_amp < 0 )
+        m_amp = 0;
+
     bool success = false;
 
     /* В зависимости от режима управления уровнем сигнала либо идет пересчет
@@ -357,7 +362,7 @@ bool G6009:: setFrequency(double &m_fHz)
 
 
     m_fHz = ((double)tmp2 * 25 / pow(2, k) + (double)tmp3 / 100 / pow(2, k)) * 1e6;
-
+    fMHz = m_fHz / 1e6;
 
 
     serialPort.write((char *)&syntheziser, sizeof(syntheziser));
