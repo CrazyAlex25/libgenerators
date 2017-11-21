@@ -34,7 +34,7 @@ HEADERS +=\
     G6009/g6009.h \
     G6009/commands6009.h
 
-VERSION = 1.3.4
+VERSION = 1.3.5
 
 
 unix {

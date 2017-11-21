@@ -318,6 +318,8 @@ bool G6009:: setFrequency(double &m_fHz)
     double fSynthMHz;
 
     // Формирование команд на нужный режим работ генератора
+    int fDds = 0;
+    qDebug() << sizeof(int);
     if ( fMHz <= 25){
 
         // НАстройка синтезатора
@@ -328,11 +330,12 @@ bool G6009:: setFrequency(double &m_fHz)
           syntheziser.data[7] = 0xDC;
       }
       // Настройка DDS
-      int fDds = std::pow(2, 32) * (fMHz / 100);
+      fDds = std::floor(std::pow(2, 32) * (fMHz / 100));
+      int buffer = fDds;
       for (qint8 k = sizeof(dds.freq) - 1; k >= 0; --k  )
       {
-      dds.freq[ k ] = (quint8)fDds;
-      fDds = fDds >> 8;
+      dds.freq[ k ] = (quint8)buffer;
+      buffer = buffer >> 8;
       }
 
     } else {
@@ -360,8 +363,11 @@ bool G6009:: setFrequency(double &m_fHz)
         f_Code = f_Code >> 8;
     }
 
-
-    m_fHz = ((double)tmp2 * 25 / pow(2, k) + (double)tmp3 / 100 / pow(2, k)) * 1e6;
+    if ( fMHz <= 25){
+        m_fHz = (double)fDds / pow(2, 32) * 100 * 1e6;
+    } else {
+        m_fHz = ((double)tmp2 * 25 / pow(2, k) + (double)tmp3 / 100 / pow(2, k)) * 1e6;
+    }
     fMHz = m_fHz / 1e6;
 
 
